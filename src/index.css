@@ -1,0 +1,10 @@
+/**
+ * Global styles and Tailwind CSS configuration
+ * @module styles
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom global styles can be added below */
