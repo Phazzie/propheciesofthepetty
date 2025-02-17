@@ -263,3 +263,64 @@ describe('Ingenious Wit Tests', () => {
     );
   });
 });
+
+describe('Oscar Wilde Level Wit Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('creates brilliantly quotable metaphors', async () => {
+    const interpretation = await generateTarotInterpretation('celtic-cross', [mockCard]);
+    
+    // Should have sophisticated literary devices
+    expect(interpretation.text).toMatch(/(?:like|as if|though|rather|quite|rather like|much as)/i);
+    // Should have elevated vocabulary
+    expect(interpretation.text).toMatch(/(?:darling|approaching|fascinating|delightful|brilliant|remarkable|exquisite)/i);
+  });
+
+  it('constructs layered, time-delayed insights', async () => {
+    const interpretation = await generateTarotInterpretation('celtic-cross', [mockCard]);
+    
+    // Should have complex sentence structures
+    expect(interpretation.text).toMatch(/(?:though|however|despite|while|although|yet|nevertheless)/i);
+    // Should build to a revelation
+    expect(interpretation.text).toMatch(/(?:perhaps|might|consider|possibly|eventually|ultimately|finally)/i);
+  });
+
+  it('maintains consistent character voice', async () => {
+    const interpretation = await generateTarotInterpretation('celtic-cross', [mockCard]);
+
+    const brilliantFriendIndicators = [
+      /(?:darling|sweetie|honey)/i,
+      /(?:shall we|might we|should we)/i,
+      /(?:fascinating|interesting|curious)/i,
+      /(?:pattern|consistency|regularity)/i,
+      /(?:quite|rather|terribly)/i
+    ];
+
+    // Should hit multiple voice indicators
+    const voiceMatches = brilliantFriendIndicators.filter(pattern => 
+      pattern.test(interpretation.text)
+    );
+    expect(voiceMatches.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('crafts memorable one-liners', async () => {
+    const interpretation = await generateTarotInterpretation('celtic-cross', [
+      {
+        ...mockCard,
+        position: {
+          name: "Ignored Solution",
+          description: "The obvious answer you're pretending not to see"
+        }
+      }
+    ]);
+
+    // Should have short, punchy observations mixed with longer analysis
+    const sentences = interpretation.text.split(/[.!?]+/).filter(Boolean);
+    const hasMemorableLines = sentences.some(s => 
+      s.length < 50 && /(?:brilliant|clever|witty|sharp|elegant)/i.test(s)
+    );
+    expect(hasMemorableLines).toBe(true);
+  });
+});
