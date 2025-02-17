@@ -7,10 +7,19 @@ export interface SeasonalModifier {
   description: string;
   effects: {
     shadeBonus: number;
-    primaryMetric: keyof ShadeIndex;
+    primaryMetric: keyof typeof SHADE_METRICS;
     flavorText: string;
   };
 }
+
+// Define shade metrics with brilliant friend energy
+const SHADE_METRICS = {
+  plausibleDeniability: "Drawing parallels so elegant they take a week to land",
+  guiltTripIntensity: "The kind of insight that hits you in the shower days later",
+  emotionalManipulation: "Pattern recognition as performance art",
+  backhandedCompliments: "Observations so clever they circle back to kindness",
+  strategicVagueness: "The art of letting them connect their own dots"
+} as const;
 
 export const SEASONAL_MODIFIERS: SeasonalModifier[] = [
   {
@@ -19,11 +28,11 @@ export const SEASONAL_MODIFIERS: SeasonalModifier[] = [
       start: { month: 12, day: 13 },
       end: { month: 1, day: 1 }
     },
-    description: "Peak communication chaos",
+    description: "Peak metaphor season",
     effects: {
       shadeBonus: 25,
       primaryMetric: "plausibleDeniability",
-      flavorText: "Blame it on Mercury, sweetie"
+      flavorText: "When miscommunication becomes an art form"
     }
   },
   {
@@ -32,11 +41,11 @@ export const SEASONAL_MODIFIERS: SeasonalModifier[] = [
       start: { month: 6, day: 21 },
       end: { month: 7, day: 22 }
     },
-    description: "Maximum emotional manipulation potential",
+    description: "Time for emotional brilliance",
     effects: {
       shadeBonus: 20,
       primaryMetric: "emotionalManipulation",
-      flavorText: "It's not me being dramatic, it's literally my zodiac"
+      flavorText: "When caring becomes cleverly crafted"
     }
   },
   {
@@ -45,11 +54,11 @@ export const SEASONAL_MODIFIERS: SeasonalModifier[] = [
       start: { month: 10, day: 23 },
       end: { month: 11, day: 21 }
     },
-    description: "Enhanced venomous undertones",
+    description: "Sharp wit hours",
     effects: {
       shadeBonus: 30,
       primaryMetric: "backhandedCompliments",
-      flavorText: "Just being honest, as Scorpio season demands"
+      flavorText: "When truth becomes an elegant weapon"
     }
   },
   {
@@ -58,11 +67,11 @@ export const SEASONAL_MODIFIERS: SeasonalModifier[] = [
       start: { month: 7, day: 23 },
       end: { month: 8, day: 22 }
     },
-    description: "Dramatic flair intensified",
+    description: "Spotlight on genius",
     effects: {
       shadeBonus: 15,
       primaryMetric: "strategicVagueness",
-      flavorText: "Not to be dramatic, but..."
+      flavorText: "When drama becomes performance art"
     }
   },
   {
@@ -71,11 +80,11 @@ export const SEASONAL_MODIFIERS: SeasonalModifier[] = [
       start: { month: 0, day: 0 }, // Calculated dynamically
       end: { month: 0, day: 0 }
     },
-    description: "Peak cosmic judgment",
+    description: "Peak revelation hours",
     effects: {
       shadeBonus: 40,
       primaryMetric: "guiltTripIntensity",
-      flavorText: "The moon made me say it"
+      flavorText: "When insights become epiphanies"
     }
   }
 ];

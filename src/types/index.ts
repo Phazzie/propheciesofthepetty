@@ -230,3 +230,20 @@ export interface EnhancedReadingInterpretation {
   };
   breakdown: ScoringBreakdown[];
 }
+
+export interface SpreadPosition {
+  name: string;
+  description: string;  // Our sassy position context
+  id?: string;
+  className?: string;
+}
+
+export interface CardInSpread extends Card {
+  position: SpreadPosition;
+  isReversed: boolean;
+}
+
+export interface ReadingGeneration {
+  spreadType: string;
+  cards: CardInSpread[];
+}

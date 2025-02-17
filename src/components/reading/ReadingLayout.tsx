@@ -10,23 +10,10 @@ interface Props {
 }
 
 const getPositionName = (spreadType: string, position: number): string => {
-  if (spreadType === 'past-present-future') {
-    const positions = ['Past', 'Present', 'Future'];
-    return positions[position] || '';
-  } else if (spreadType === 'celtic-cross') {
-    const positions = [
-      'Present Situation',
-      'Challenge',
-      'Past Foundation',
-      'Recent Past',
-      'Potential Outcome',
-      'Near Future',
-      'Your Influence',
-      'External Influences',
-      'Hopes and Fears',
-      'Final Outcome'
-    ];
-    return positions[position] || '';
+  // Use the SPREADS constant from SpreadSelector for consistent position names and sass
+  const spread = SPREADS.find(s => s.id === spreadType);
+  if (spread && spread.positions[position]) {
+    return `${spread.positions[position].name} - ${spread.positions[position].description}`;
   }
   return '';
 };

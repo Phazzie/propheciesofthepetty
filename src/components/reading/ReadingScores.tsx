@@ -37,16 +37,16 @@ interface ReadingScoresProps {
   interpretation: Interpretation | null;
 }
 
-// Constants for scoring thresholds
+// Constants for scoring thresholds and evaluation
 const CORE_METRICS = ['subtlety', 'relatability', 'wisdom', 'creative', 'humor'] as const;
-const PASSING_THRESHOLD = 80; // 8/10 scaled to 100
+const PASSING_THRESHOLD = 80;
 const SHADE_PASSING_THRESHOLD = 7;
 
-// Helper function to determine score color based on thresholds
+// Helper function to determine score color with clever friend energy
 const getScoreColor = (score: number, threshold = PASSING_THRESHOLD) => {
-  if (score >= threshold) return 'text-green-600';
-  if (score >= threshold * 0.8) return 'text-yellow-600';
-  return 'text-red-600';
+  if (score >= threshold) return 'text-green-600 dark:text-green-400'; // "Your growth is showing, darling"
+  if (score >= threshold * 0.8) return 'text-yellow-600 dark:text-yellow-400'; // "We're getting warmer... metaphorically speaking"
+  return 'text-red-600 dark:text-red-400'; // "Let's call this a learning opportunity"
 };
 
 // Animated metric bar component
@@ -65,37 +65,46 @@ const renderMetricBar = (value: number, maxValue: number = 100) => (
   </motion.div>
 );
 
-// Calculate shade level and corresponding message
+// Calculate shade level with brilliant observations
 const calculateShadeLevelDetails = (shadeIndex: ShadeIndex) => {
   const values = Object.values(shadeIndex);
   const averageScore = values.reduce((sum, val) => sum + val, 0) / values.length;
-  const level = Math.min(Math.floor(averageScore / 10), 10); // Convert 0-100 to 0-10 scale, cap at 10
+  const level = Math.min(Math.floor(averageScore / 10), 10);
   
-  // Level 3-4 special criteria check
-  if (level >= 3 && level <= 4) {
-    // Check if guiltTripIntensity is above 60 for Level 4
-    if (shadeIndex.guiltTripIntensity >= 60) {
-      return { level: 4, message: "Clear undertones of judgment" };
-    }
-    return { level: 3, message: "Clear undertones of judgment" };
-  }
-
-  // Other shade levels
-  if (level >= 9) return { level, message: "Master of Shade" };
-  if (level >= 7) return { level, message: "Professional Tea Spiller" };
-  if (level >= 5) return { level, message: "Accomplished Side-Eye" };
-  return { level, message: "Still learning the art of shade" };
+  if (level >= 9) return { 
+    level, 
+    message: "Weaponized Brilliance" 
+  };
+  
+  if (level >= 7) return { 
+    level, 
+    message: "Artfully Devastating" 
+  };
+  
+  if (level >= 5) return { 
+    level, 
+    message: "Cleverly Constructive" 
+  };
+  
+  if (level >= 3) return { 
+    level, 
+    message: "Shows Promise... Theoretically" 
+  };
+  
+  return { 
+    level, 
+    message: "Still in Metaphor Training" 
+  };
 };
 
-// Calculate weighted scores for metrics
+// Calculate weighted scores emphasizing wit
 const calculateWeightedScore = (scores: Scores) => {
-  // Weight multipliers for core metrics
   const weights = {
-    subtlety: 1.2,  // Subtle shade is an art
-    relatability: 1.1,
-    wisdom: 1.15,   // Wisdom adds depth to shade
-    creative: 1.1,
-    humor: 1.25,    // Humor is key to effective shade
+    subtlety: 1.3,    // The art of elegant shade
+    relatability: 1.2, // The callback game
+    wisdom: 1.15,     // Pattern recognition genius
+    creative: 1.25,   // Metaphor mastery
+    humor: 1.4,       // Wit that works overtime
   };
 
   const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);

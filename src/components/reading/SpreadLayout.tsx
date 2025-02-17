@@ -247,9 +247,18 @@ export const SpreadLayout: React.FC<Props> = ({
                 <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
                   {position.name}
                 </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-full">
+                  <p className="text-xs text-gray-500 italic text-center">
+                    {position.description}
+                  </p>
+                </div>
               </div>
             ) : (
-              <div className="aspect-[2/3] bg-purple-100 rounded-lg flex items-center justify-center">
+              <div 
+                className="aspect-[2/3] bg-purple-100 rounded-lg flex items-center justify-center"
+                role="img"
+                aria-label={`Empty position: ${position.name} - ${position.description}`}
+              >
                 <HelpCircle className="w-8 h-8 text-purple-300" />
               </div>
             )}
