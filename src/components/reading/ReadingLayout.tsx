@@ -6,7 +6,30 @@ interface Props {
   spreadType: string;
   cards: (Card & { position: number; isReversed: boolean })[];
   interpretation?: ReadingInterpretation;
+  isRevealed: boolean;
 }
+
+const getPositionName = (spreadType: string, position: number): string => {
+  if (spreadType === 'past-present-future') {
+    const positions = ['Past', 'Present', 'Future'];
+    return positions[position] || '';
+  } else if (spreadType === 'celtic-cross') {
+    const positions = [
+      'Present Situation',
+      'Challenge',
+      'Past Foundation',
+      'Recent Past',
+      'Potential Outcome',
+      'Near Future',
+      'Your Influence',
+      'External Influences',
+      'Hopes and Fears',
+      'Final Outcome'
+    ];
+    return positions[position] || '';
+  }
+  return '';
+};
 
 export const ReadingLayout: React.FC<Props> = ({
   spreadType,
@@ -23,18 +46,53 @@ export const ReadingLayout: React.FC<Props> = ({
       }`}>
         {cards.map((card, index) => (
           <div key={index} className="relative">
-            <div className="aspect-[2/3] bg-purple-100 rounded-lg p-4">
-              <div className="text-center">
+            <div 
+              className={`aspect-[2/3] bg-purple-100 rounded-lg p-4 ${
+                card.isReversed ? 'transform rotate-180' : ''
+              }`}
+              data-testid={card.isReversed ? 'reversed-card' : undefined}
+            >
+              <div className={`text-center ${card.isReversed ? 'transform rotate-180' : ''}`}>
                 <h3 className="font-medium text-purple-900">{card.name}</h3>
                 {card.isReversed && (
                   <span className="text-sm text-purple-600">(Reversed)</span>
                 )}
+                <div className="mt-2 text-sm text-purple-700">
+                  {getPositionName(spreadType, card.position)}
+                </div>
               </div>
             </div>
           </div>
         ))}
+        {/* Empty positions */}
+        {Array.from({ length: (spreadType === 'celtic-cross' ? 10 : 3) - cards.length }).map((_, i) => (
+          <div key={`empty-${i}`} className="relative">
+            <div 
+              className="aspect-[2/3] bg-purple-100 rounded-lg flex items-center justify-center"
+              role="img"
+              aria-label="empty position"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-8 h-8 text-purple-300 lucide lucide-help-circle"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                role="presentation"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <path d="M12 17h.01" />
+              </svg>
+            </div>
+          </div>
+        ))}
       </div>
-
       {/* Reading interpretation and scores */}
       {interpretation && (
         <div className="grid md:grid-cols-2 gap-6">

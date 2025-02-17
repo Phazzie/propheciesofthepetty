@@ -5,7 +5,8 @@
 
 import { renderHook, act } from '@testing-library/react';
 import { useCards, useReadings } from '../useDatabase';
-import { vi } from 'vitest';
+import { vi, it, describe, expect, beforeEach } from 'vitest';
+import { cardOperations, readingOperations } from '../../lib/database';
 
 // Mock database operations
 vi.mock('../../lib/database', () => ({
@@ -19,13 +20,16 @@ vi.mock('../../lib/database', () => ({
 }));
 
 describe('useCards', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('fetches cards successfully', async () => {
     const mockCards = [
       { id: '1', name: 'The Fool', description: 'Test' }
     ];
 
     vi.mocked(cardOperations.getCards).mockResolvedValueOnce(mockCards);
-
     const { result } = renderHook(() => useCards());
 
     await act(async () => {
@@ -52,6 +56,10 @@ describe('useCards', () => {
 });
 
 describe('useReadings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('saves reading successfully', async () => {
     const mockReadingId = '123';
     vi.mocked(readingOperations.saveReading).mockResolvedValueOnce(mockReadingId);

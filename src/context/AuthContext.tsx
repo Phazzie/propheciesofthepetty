@@ -31,7 +31,8 @@ interface AuthContextType {
   requestPasswordReset: (email: string) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+// Export the context directly
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -50,19 +51,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkSession = async () => {
       logger.debug('Checking auth session', undefined, 'AuthContext', 'checkSession');
       try {
+        // Handle test account in development
         if (import.meta.env.DEV && import.meta.env.VITE_USE_TEST_ACCOUNT === 'true') {
           logger.debug('Using test account', { email: TEST_USER.email });
           setUser(TEST_USER);
-          setLoading(false);
           return;
         }
+
+        // Check for existing session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          throw new AuthError(sessionError.message);
+        }
+
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email!,
+            subscriptionType: 'free'
+          });
+          logger.info('Session restored', { userId: session.user.id });
+        }
+
       } catch (err) {
-        logger.error('Session check failed', err);
+        const message = err instanceof Error ? err.message : 'Session check failed';
+        logger.error('Session check failed', err instanceof Error ? err : new Error(message));
+        setError(message);
+      } finally {
         setLoading(false);
       }
     };
 
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      logger.debug('Auth state changed', { event }, 'AuthContext', 'onAuthStateChange');
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email!,
+          subscriptionType: 'free'
+        });
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
     checkSession();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

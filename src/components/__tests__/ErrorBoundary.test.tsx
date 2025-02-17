@@ -64,12 +64,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { ErrorBoundary } from '../ErrorBoundary';
+
+// Test to ensure ErrorBoundary catches errors and displays fallback UI
 
 describe('ErrorBoundary', () => {
   it('catches errors and displays fallback UI', () => {
     const ProblemChild = () => {
-      throw new Error('Error thrown for test');
+      throw new Error('Simulated error');
     };
 
     render(
@@ -77,7 +80,7 @@ describe('ErrorBoundary', () => {
         <ProblemChild />
       </ErrorBoundary>
     );
-    
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
   });
 });

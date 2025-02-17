@@ -1,31 +1,29 @@
-import '@testing-library/jest-dom/vitest';
+import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { vi, beforeAll, afterEach } from 'vitest';
 
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation(query => ({
+beforeAll(() => {
+  // Mock window.matchMedia
+  window.matchMedia = window.matchMedia || (() => ({
     matches: false,
-    media: query,
-    onchange: null,
     addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+    removeListener: vi.fn()
+  }));
+  // Mock fetch if necessary
+  global.fetch = vi.fn();
 });
 
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
-
-// Cleanup after each test
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
+
+// Mock ResizeObserver
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+// @ts-ignore - ResizeObserver is used but not fully typed
+window.ResizeObserver = MockResizeObserver;

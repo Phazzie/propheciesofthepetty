@@ -12,6 +12,10 @@
 
 export type SubscriptionType = 'free' | 'major_arcana' | 'full_deck';
 
+export type SpreadType = 'classic' | 'celtic-cross' | 'three-card';
+
+export type ThematicCategory = 'humor' | 'snark' | 'culturalResonance' | 'metaphorMastery';
+
 /**
  * User profile information
  */
@@ -56,30 +60,42 @@ export interface Card {
  * - Minimum Shade Scale™ rating of 7
  */
 export interface ReadingScore {
-  /** Subtlety: How artfully the hostility is veiled (1-10) */
+  /** Core metrics - All use 0-100 base scale */
   subtlety: number;
-  /** Relatability: How effectively it targets common insecurities (1-10) */
   relatability: number;
-  /** Wisdom: Quality of actual divinatory insight (1-10) */
   wisdom: number;
-  /** Creative Writing: Memorability and eloquence of phrasing (1-10) */
   creative: number;
-  /** Humor: Ability to provoke uncomfortable laughter (1-10) */
   humor: number;
-  /** The Shade Scale™: A proprietary metric for shade-throwing effectiveness */
+
+  /** Additional metrics with weights */
+  snark: number;         // Base 0-100 with 1.0x multiplier
+  culturalResonance: number;  // Base 0-100 with 0.6x multiplier
+  metaphorMastery: number;    // Base 0-100 with 0.6x multiplier
+
+  /** Shade Scale™ components - All 0-100 */
   shadeIndex: {
-    /** Level 1-2: Barely noticeable criticism (0-100) */
+    /** Level 1-2: Barely noticeable criticism */
     plausibleDeniability: number;
-    /** Level 3-4: Clear undertones of judgment (0-100) */
+    /** Level 3-4: Clear undertones of judgment */
     guiltTripIntensity: number;
-    /** Level 5-6: Expert use of passive aggression (0-100) */
+    /** Level 5-6: Expert use of passive aggression */
     emotionalManipulation: number;
-    /** Level 7-8: Devastating criticism wrapped in sweetness (0-100) */
+    /** Level 7-8: Devastating criticism wrapped in sweetness */
     backhandedCompliments: number;
-    /** Level 9-10: So subtle it takes days to process (0-100) */
+    /** Level 9-10: So subtle it takes days to process */
     strategicVagueness: number;
   };
-  /** Modifiers based on spread type */
+
+  /** Special condition achievements */
+  specialConditions?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    multiplier: number;
+    unlocked: boolean;
+  }>;
+
+  /** Spread-specific modifiers */
   spreadModifiers?: SpreadModifiers;
 }
 
@@ -87,18 +103,18 @@ export interface ReadingScore {
  * Spread-specific scoring modifiers
  */
 export interface SpreadModifiers {
+  /** Base multiplier for all scores */
+  baseMultiplier: number;
+  /** Category-specific multipliers */
+  categoryMultipliers: {
+    [key: string]: number;
+  };
+  /** Special condition trigger modifiers */
+  specialConditionThresholds: {
+    [key: string]: number;
+  };
   /** Bonus points for thematic consistency */
   thematicBonus: number;
-  /** Multiplier for specific shade categories */
-  shadeMultipliers: {
-    [K in keyof ShadeIndex]?: number;
-  };
-  /** Special conditions that unlock bonus sass */
-  specialConditions: {
-    name: string;
-    description: string;
-    multiplier: number;
-  }[];
 }
 
 /**

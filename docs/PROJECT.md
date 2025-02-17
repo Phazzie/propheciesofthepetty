@@ -1,63 +1,73 @@
-import React, { useState } from 'react';st-dom';State, useContext, ReactNode } from 'react';
-import { Layout } from './components/Layout';ote: changed from server.js to server
-import { AuthProvider } from './context/AuthContext';
-export const server = setupServer(...handlers);function AppContent() {
-  const { user } = useAuth();interface ThemeProviderProps {
-  const [currentView, setCurrentView] = useState<'reading' | 'history' | 'profile' | 'test'>('reading');: ReactNode; ❌ User profile
-me?: string;- ❌ Subscription management
-  return (
-    <Layout>
-      <div className="max-w-6xl mx-auto">dren, initialTheme = 'light' }) => {
-        <div className="text-center mb-12">(initialTheme);
-  const accentColor = theme === 'dark' ? '#66B2FF' : '#007BFF'; // Adaptive accentns the same...]
-e-Aggressive Tarot
-  return (h1>
-    <ThemeContext.Provider value={{ theme, setTheme, accentColor }}>-lg text-gray-600">
-      <div className={theme === 'dark' ? 'dark:bg-gray-800 min-h-screen' : 'bg-white min-h-screen'}>        Where the cards tell you what you need to hear, not what you want to hear.onents remain the same...]
-        {children}        </p>
-      </div>        </div>
-    </ThemeContext.Provider>
+# Petty Prophecies
 
+## Overview
+A passive-aggressive tarot reading application that tells users what they need to hear, not what they want to hear. Built with modern web technologies and AI integration.
 
+## Tech Stack
+### Frontend
+- React with TypeScript
+- Tailwind CSS for styling
+- Framer Motion for animations
+- Lucide React for icons
 
+### Backend & Services
+- Supabase for database and auth
+- Google Gemini AI for tarot interpretations
 
-export const useTheme = () => useContext(ThemeContext);};  );        {user ? (
-          <>ard flipping
-            <div className="flex justify-end mb-6 gap-4">
-              <button
-                onClick={() => setCurrentView('test')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  currentView === 'test'
-                    ? 'bg-purple-600 text-white'ier limitations
-                    : 'bg-white text-purple-600 hover:bg-purple-50' hover animations
-                }`}
-              >yout
-                <Sparkles className="w-5 h-5" />
-                Test AI
-              </button>
-              <button
-                onClick={() => setCurrentView('profile')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  currentView === 'profile'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white text-purple-600 hover:bg-purple-50'rface`
-                }`}
-              >ection
-                <UserIcon className="w-5 h-5" />tion
-                Profilerogress
-                onClick={() => setCurrentView(view => view === 'history' ? 'reading' : 'history')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  currentView === 'history'
-                    ? 'bg-purple-600 text-white'ted cards in grid
-                    : 'bg-white text-purple-600 hover:bg-purple-50'tion names
-                }`}
-                  <>= 'history' ? (
-                    <PlusCircle className="w-5 h-5" />n
-                    New Reading
-                  </>mains the same...]                ) : (                  <>                    <History className="w-5 h-5" />                    View History                  </>                )}              </button>            </div>            {currentView === 'profile' ? (              <UserProfile />            ) : currentView === 'history' ? (              <ReadingHistory />            ) : currentView === 'test' ? (              <GeminiTest />            ) : (              <ReadingInterface />            )}          </>        ) : (          <LoginForm />        )}      </div>    </Layout>  );}function App() {  return (    <ThemeProvider>      <AuthProvider>        <div className="font-sans antialiased text-gray-900 dark:text-white">          <AppContent />        </div>
-      </AuthProvider>
-    </ThemeProvider>
-  );
-}
+### Development Tools
+- Vite for build tooling
+- npm for package management
+- Vitest for testing
+- ESLint for code quality
+- TypeScript for type safety
 
-export default App;
+## Getting Started
+```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp  .env
+# Edit .env with your API keys
+
+# Start development server
+npm run dev
+
+# Run tests
+npm test
+```
+
+## Project Structure
+- **src/**: Contains the source code for the application
+- **docs/**: Contains documentation files
+- **public/**: Contains public assets
+- **tests/**: Contains test setup and utilities
+
+## Development Guidelines
+- Follow the coding standards and best practices outlined in the documentation
+- Ensure all new features are covered by unit and integration tests
+- Maintain consistent styling and UX patterns throughout the application
+- Implement proper error handling and loading states
+- Follow accessibility best practices
+- Use TypeScript for type safety and code clarity
+
+## Current Status
+- **Frontend**: Initial setup complete, working on authentication forms and reading interface
+- **Backend**: Pending setup
+- **Database**: Pending integration
+- **Testing**: Initial setup complete, working on adding more tests
+
+## Next Steps
+- Complete the authentication forms
+- Implement the card reading interface
+- Set up the backend infrastructure
+- Integrate the database
+- Add more tests and ensure coverage
+
+## Notes
+- Keep frontend and backend in separate repositories
+- Use environment variables for configuration
+- Follow security best practices
+- Maintain comprehensive documentation
+- Regular security audits
+- Performance monitoring

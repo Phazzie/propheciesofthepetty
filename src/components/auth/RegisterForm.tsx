@@ -26,16 +26,16 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
 
   const validatePassword = (password: string) => {
     if (password.length < 8) {
-      return 'Password must be at least 8 characters long';
+      return 'Password must be at least 8 characters';
     }
     if (!/[A-Z]/.test(password)) {
-      return 'Password must contain at least one uppercase letter';
+      return 'Password must contain one uppercase letter';
     }
     if (!/[a-z]/.test(password)) {
-      return 'Password must contain at least one lowercase letter';
+      return 'Password must contain one lowercase letter';
     }
     if (!/[0-9]/.test(password)) {
-      return 'Password must contain at least one number';
+      return 'Password must contain one number';
     }
     return null;
   };
@@ -43,7 +43,7 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
-
+    
     const passwordError = validatePassword(formData.password);
     if (passwordError) {
       setValidationError(passwordError);
@@ -62,11 +62,19 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
 
     try {
       await register(formData.email, formData.password);
-    } catch (_err) {
-      setError('Failed to register. Please try again.');
-      setLoading(false);
+    } catch (err) {
+      setValidationError('Registration failed. Please try again.');
     }
   };
+
+  // Add validation message display
+  const validationMessages = [];
+  if (formData.password) {
+    if (!/[A-Z]/.test(formData.password)) validationMessages.push('one uppercase letter');
+    if (!/[a-z]/.test(formData.password)) validationMessages.push('one lowercase letter');
+    if (!/[0-9]/.test(formData.password)) validationMessages.push('one number');
+    if (formData.password.length < 8) validationMessages.push('8+ characters');
+  }
 
   return (
     <div className="max-w-md mx-auto">
@@ -79,7 +87,7 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h2 className="text-2xl font-bold text-purple-900 ml-2">
-            Create Account
+            Register
           </h2>
         </div>
 
@@ -116,18 +124,25 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
                 className="pl-10 pr-10 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="••••••••"
                 required
+                aria-invalid={!!validationError}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Toggle password visibility"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
-            <p className="mt-1 text-sm text-gray-500">
-              Must be at least 8 characters with uppercase, lowercase, and numbers
-            </p>
+            {formData.password && (
+              <p className="mt-1 text-sm text-red-600">
+                {formData.password.length < 8 && "Password must be at least 8 characters"}
+                {formData.password.length >= 8 && !/[A-Z]/.test(formData.password) && "Password must contain one uppercase letter"}
+                {formData.password.length >= 8 && !/[a-z]/.test(formData.password) && "Password must contain one lowercase letter"} 
+                {formData.password.length >= 8 && !/[0-9]/.test(formData.password) && "Password must contain one number"}
+              </p>
+            )}
           </div>
 
           <div>
@@ -144,8 +159,12 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
                 className="pl-10 pr-10 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="••••••••"
                 required
+                aria-invalid={formData.password !== formData.confirmPassword}
               />
             </div>
+            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+              <p className="mt-1 text-sm text-red-600">Passwords do not match</p>
+            )}
           </div>
 
           <div className="flex items-center">
@@ -161,10 +180,20 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
             </label>
           </div>
 
-          {(error || validationError) && (
-            <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
+          {error && (
+            <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg" role="alert">
               <AlertCircle className="w-5 h-5" />
-              <p className="text-sm">{error || validationError}</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+          {validationError && (
+            <div
+              className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg"
+              role="alert"
+              id="password-error"
+            >
+              <AlertCircle className="w-5 h-5" />
+              <p className="text-sm">{validationError}</p>
             </div>
           )}
 

@@ -37,10 +37,10 @@ export const cardOperations = {
       } catch (err) {
         retryCount++;
         if (retryCount === maxRetries) {
-          logger.error('Max retries reached for fetching cards', err);
+          logger.error('Max retries reached for fetching cards', err instanceof Error ? err : new Error(String(err)));
           throw err;
         }
-        logger.warn(`Retry attempt ${retryCount} for fetching cards`, err);
+        logger.warn(`Retry attempt ${retryCount} for fetching cards`, err instanceof Error ? err : new Error(String(err)));
         await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
       }
     }
@@ -88,4 +88,54 @@ export const cardOperations = {
     logger.info('Successfully saved reading', { readingId: reading.id });
     return reading.id;
   },
+};
+
+export const readingOperations = {
+  async getUserReadings(userId: string) {
+    logger.debug('Fetching readings for user', { userId });
+    const { data, error } = await supabase
+      .from('readings')
+      .select(`
+        *,
+        reading_cards (
+          card_id,
+          position,
+          is_reversed,
+          cards (*)
+        )
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('Failed to fetch user readings', error);
+      throw new DatabaseError('Failed to fetch readings', { error });
+    }
+
+    return data;
+  },
+
+  async getReading(readingId: string) {
+    logger.debug('Fetching reading', { readingId });
+    const { data, error } = await supabase
+      .from('readings')
+      .select(`
+        *,
+        reading_cards (
+          card_id,
+          position,
+          is_reversed,
+          cards (*)
+        )
+      `)
+      .eq('id', readingId)
+      .single();
+
+    if (error) {
+      logger.error('Failed to fetch reading', error);
+      throw new DatabaseError('Failed to fetch reading', { error });
+    }
+
+    return data;
+  }
 };

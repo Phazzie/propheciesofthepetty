@@ -4,7 +4,7 @@ import { Layout, CopyX, Star, Info, MessageCircle, ThumbsUp, XSquare, Coffee } f
 
 export type SpreadType = 'past-present-future' | 'celtic-cross' | 'im-fine' | 'just-saying' | 'whatever' | 'no-offense';
 
-interface SpreadConfig {
+export interface SpreadConfig {
   id: SpreadType;
   name: string;
   description: string;

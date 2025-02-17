@@ -6,7 +6,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ReadingHistory } from '../ReadingHistory';
 import { AuthProvider } from '../../../context/AuthContext';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { useReadings } from '../../../hooks/useDatabase';
 
 // Mock hooks
 vi.mock('../../../hooks/useDatabase', () => ({
@@ -22,6 +23,8 @@ vi.mock('../../../hooks/useDatabase', () => ({
         ]
       }
     ]),
+    saveReading: vi.fn(),
+    getReading: vi.fn(),
     loading: false,
     error: null
   })
@@ -63,6 +66,8 @@ describe('ReadingHistory', () => {
     // Mock empty readings
     vi.mocked(useReadings).mockImplementationOnce(() => ({
       getUserReadings: vi.fn().mockResolvedValue([]),
+      saveReading: vi.fn(),
+      getReading: vi.fn(),
       loading: false,
       error: null
     }));

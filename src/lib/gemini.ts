@@ -15,7 +15,30 @@ const CONSTANTS = {
   MAX_SHADE_SCORE: 100
 } as const;
 
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey);
+
+const model = genAI.getGenerativeModel({
+  model: 'gemini-2.0-flash-exp',
+});
+
+const generationConfig = {
+  temperature: 1,
+  topP: 0.95,
+  topK: 64,
+  maxOutputTokens: 8192,
+  responseMimeType: 'text/plain',
+};
+
+export async function runGeminiAPI(input: string) {
+  const chatSession = model.startChat({
+    generationConfig,
+    history: [],
+  });
+
+  const result = await chatSession.sendMessage(input);
+  return result.response.text();
+}
 
 const PASSIVE_AGGRESSIVE_PROMPT = `You are a passive-aggressive tarot reader with impeccable subtlety and wit. Generate a reading that's simultaneously insightful and subtly critical. Follow this format:
 
@@ -47,19 +70,11 @@ Also calculate the Shade Index™ (100-point scale) based on:
 - Backhanded Compliment Quality
 - Strategic Vagueness`;
 
-const handleError = (response: any) => {
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.statusText}`);
-  }
-};
-
 export async function generateTarotInterpretation(
   spreadType: string,
   cards: Array<{ position: string; name: string; description: string; isReversed?: boolean }>
 ): Promise<ReadingInterpretation> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
     const prompt = `
 ${PASSIVE_AGGRESSIVE_PROMPT}
 
@@ -87,8 +102,7 @@ Generate a passive-aggressive tarot reading with scores in JSON format:
   }
 }`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const responseText = await runGeminiAPI(prompt);
     
     try {
       const parsed = JSON.parse(responseText);
@@ -100,6 +114,9 @@ Generate a passive-aggressive tarot reading with scores in JSON format:
           wisdom: Math.min(Math.max(parsed.scores.wisdom, CONSTANTS.MIN_SCORE), CONSTANTS.MAX_SCORE),
           creative: Math.min(Math.max(parsed.scores.creative, CONSTANTS.MIN_SCORE), CONSTANTS.MAX_SCORE),
           humor: Math.min(Math.max(parsed.scores.humor, CONSTANTS.MIN_SCORE), CONSTANTS.MAX_SCORE),
+          snark: Math.min(Math.max(parsed.scores.snark || CONSTANTS.MIN_SCORE, CONSTANTS.MIN_SCORE), CONSTANTS.MAX_SCORE),
+          culturalResonance: Math.min(Math.max(parsed.scores.culturalResonance || CONSTANTS.MIN_SCORE, CONSTANTS.MIN_SCORE), CONSTANTS.MAX_SCORE),
+          metaphorMastery: Math.min(Math.max(parsed.scores.metaphorMastery || CONSTANTS.MIN_SCORE, CONSTANTS.MIN_SCORE), CONSTANTS.MAX_SCORE),
           shadeIndex: {
             plausibleDeniability: Math.min(Math.max(parsed.scores.shadeIndex.plausibleDeniability, 0), CONSTANTS.MAX_SHADE_SCORE),
             guiltTripIntensity: Math.min(Math.max(parsed.scores.shadeIndex.guiltTripIntensity, 0), CONSTANTS.MAX_SHADE_SCORE),
@@ -114,5 +131,22 @@ Generate a passive-aggressive tarot reading with scores in JSON format:
     }
   } catch {
     throw new Error('Failed to generate interpretation');
+  }
+}
+
+export async function testGeminiTarotKnowledge(): Promise<string> {
+  try {
+    const prompt = `Demonstrate your knowledge of tarot by explaining:
+1. The difference between Major and Minor Arcana
+2. Three common tarot spreads and their purposes
+3. How reversals affect card meanings
+4. The significance of the four suits
+
+Format your response in clear paragraphs.`;
+
+    const responseText = await runGeminiAPI(prompt);
+    return responseText;
+  } catch (error) {
+    throw new Error('Failed to test Gemini knowledge');
   }
 }

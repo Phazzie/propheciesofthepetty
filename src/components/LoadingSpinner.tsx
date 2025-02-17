@@ -25,19 +25,24 @@ export const LoadingSpinner: React.FC<Props> = ({
   message, 
   center = true 
 }) => {
+  const [messageIndex, setMessageIndex] = useState(0);
   const [currentMessage, setCurrentMessage] = useState(message || shadeMessages[0]);
 
   useEffect(() => {
     if (!message) {
+      setMessageIndex(0);
+      
       const interval = setInterval(() => {
-        setCurrentMessage(prev => {
-          const currentIndex = shadeMessages.indexOf(prev);
-          const nextIndex = (currentIndex + 1) % shadeMessages.length;
-          return shadeMessages[nextIndex];
+        setMessageIndex(prevIndex => {
+          const nextIndex = (prevIndex + 1) % shadeMessages.length;
+          setCurrentMessage(shadeMessages[nextIndex]);
+          return nextIndex;
         });
-      }, 3000);
+      }, 2000);
 
       return () => clearInterval(interval);
+    } else {
+      setCurrentMessage(message);
     }
   }, [message]);
 
@@ -46,13 +51,17 @@ export const LoadingSpinner: React.FC<Props> = ({
       className={`flex items-center ${center ? 'justify-center' : ''}`}
       role="status"
       aria-live="polite"
+      data-testid="loading-spinner"
     >
       <Loader 
         className="animate-spin text-purple-600" 
         style={{ width: size, height: size }}
         aria-hidden="true"
       />
-      <span className="ml-2 text-gray-600 italic">
+      <span 
+        className="ml-2 text-gray-600 italic"
+        data-testid="loading-message"
+      >
         {currentMessage}
       </span>
     </div>

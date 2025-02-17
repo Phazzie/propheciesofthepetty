@@ -3,6 +3,7 @@
  * @module tests/SpreadLayout
  */
 
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { SpreadLayout } from '../SpreadLayout';
 
@@ -23,26 +24,26 @@ describe('SpreadLayout', () => {
     render(
       <SpreadLayout
         spreadType="past-present-future"
-        cards={mockCards}
+        cards={[mockCards[0], mockCards[0], mockCards[0]]}
         isRevealed={true}
       />
     );
 
-    expect(screen.getByText(/past/i)).toBeInTheDocument();
-    expect(screen.getByText(/present/i)).toBeInTheDocument();
-    expect(screen.getByText(/future/i)).toBeInTheDocument();
+    expect(screen.getByText('Past')).toBeInTheDocument();
+    expect(screen.getByText('Present')).toBeInTheDocument();
+    expect(screen.getByText('Future')).toBeInTheDocument();
   });
 
   it('handles celtic cross spread layout', () => {
     render(
       <SpreadLayout
         spreadType="celtic-cross"
-        cards={mockCards}
+        cards={Array(10).fill(mockCards[0])}
         isRevealed={true}
       />
     );
 
-    expect(screen.getByText(/present situation/i)).toBeInTheDocument();
+    expect(screen.getByText('Present Situation')).toBeInTheDocument();
   });
 
   it('shows placeholder for empty positions', () => {
@@ -54,17 +55,19 @@ describe('SpreadLayout', () => {
       />
     );
 
-    const placeholders = screen.getAllByRole('generic', { name: /empty position/i });
+    const placeholders = screen.getAllByRole('img', { 
+      name: (name) => name.toLowerCase().includes('empty position')
+    });
     expect(placeholders).toHaveLength(3);
   });
 
   it('displays reversed cards correctly', () => {
-    const reversedCards = [{ ...mockCards[0], isReversed: true }];
+    const reversedCard = { ...mockCards[0], isReversed: true };
     
     render(
       <SpreadLayout
         spreadType="past-present-future"
-        cards={reversedCards}
+        cards={[reversedCard]}
         isRevealed={true}
       />
     );

@@ -11,7 +11,7 @@ vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn(() => ({
     getGenerativeModel: () => ({
       generateContent: vi.fn().mockResolvedValue({
-        response: { text: 'Test interpretation' }
+        response: { text: () => 'Test interpretation' }
       })
     })
   }))
@@ -28,13 +28,13 @@ describe('Gemini AI Integration', () => {
     ];
 
     const interpretation = await generateTarotInterpretation('past-present-future', cards);
-    expect(interpretation).toBe('Test interpretation');
+    expect(interpretation.response.text).toBe('Test interpretation');
   });
 
   it('handles API errors gracefully', async () => {
     vi.mocked(GoogleGenerativeAI).mockImplementationOnce(() => ({
       getGenerativeModel: () => ({
-        generateContent: vi.fn().mockRejectedValue(new Error('API Error'))
+        generateContent: vi.fn().mockRejectedValueOnce(new Error('API Error'))
       })
     }));
 

@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Layout } from './components/Layout';
 import { AuthProvider } from './context/AuthContext';
 import { LoginForm } from './components/auth/LoginForm';
-import { ReadingInterface } from './components/reading/ReadingInterface';
+import ReadingInterface from './components/reading/ReadingInterface';
 import { ReadingHistory } from './components/reading/ReadingHistory';
 import { UserProfile } from './components/profile/UserProfile';
 import { GeminiTest } from './components/testing/GeminiTest';
 import { useAuth } from './context/AuthContext';
 import { History, PlusCircle, User as UserIcon, Sparkles } from 'lucide-react';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 function AppContent() {
   const { user } = useAuth();
@@ -24,7 +25,6 @@ function AppContent() {
             Where the cards tell you what you need to hear, not what you want to hear.
           </p>
         </div>
-        
         {user ? (
           <>
             <div className="flex justify-end mb-6 gap-4">
@@ -91,9 +91,13 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <div className="font-sans antialiased text-gray-900 dark:text-white">
+          <AppContent />
+        </div>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

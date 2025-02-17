@@ -13,7 +13,7 @@ interface FormData {
 }
 
 export const LoginForm: React.FC = () => {
-  const { login, loading, error } = useAuth();
+  const { login, loading, error: authError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -22,40 +22,28 @@ export const LoginForm: React.FC = () => {
     password: '',
     rememberMe: false
   });
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    logger.debug('Login attempt', { email: formData.email }, 'LoginForm', 'handleSubmit');
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Invalid email format');
+      return;
+    }
+
+    // Validate password
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
 
     try {
-      // In development with test account enabled, simulate successful login
-      if (import.meta.env.DEV && import.meta.env.VITE_USE_TEST_ACCOUNT === 'true') {
-        logger.info('Using test account login', undefined, 'LoginForm', 'login');
-        await login('test@example.com', 'password');
-        return;
-      }
-
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        throw new ValidationError('Please enter a valid email address');
-      }
-
-      // Validate password
-      if (formData.password.length < 8) {
-        throw new ValidationError('Password must be at least 8 characters long');
-      }
-
       await login(formData.email, formData.password);
-      logger.info('Login successful', { email: formData.email }, 'LoginForm', 'login');
     } catch (err) {
-      logger.error(
-        'Login failed',
-        err instanceof Error ? err : new Error('Unknown error'),
-        undefined,
-        'LoginForm',
-        'login'
-      );
+      setError('Login failed. Please try again.');
     }
   };
 
@@ -75,7 +63,7 @@ export const LoginForm: React.FC = () => {
         </div>
 
         <h2 className="text-2xl font-bold text-purple-900 mb-6 text-center">
-          Welcome to Passive-Aggressive Tarot
+          Sign in
         </h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -120,7 +108,7 @@ export const LoginForm: React.FC = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label="Toggle password visibility"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -157,6 +145,17 @@ export const LoginForm: React.FC = () => {
             </div>
           )}
 
+          {authError && (
+            <div 
+              className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg"
+              role="alert"
+              id="login-error"
+            >
+              <AlertCircle className="w-5 h-5" aria-hidden="true" />
+              <p className="text-sm">{authError}</p>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -165,10 +164,10 @@ export const LoginForm: React.FC = () => {
             {loading ? (
               <span className="flex items-center justify-center">
                 <Loader className="w-5 h-5 animate-spin mr-2" aria-hidden="true" />
-                Logging in...
+                Signing in...
               </span>
             ) : (
-              'Login'
+              'Sign in'
             )}
           </button>
 
@@ -180,7 +179,7 @@ export const LoginForm: React.FC = () => {
                 onClick={() => setShowRegister(true)}
                 className="text-purple-600 hover:text-purple-700"
               >
-                Sign up
+                Create account
               </button>
             </p>
           </div>
