@@ -1,34 +1,89 @@
-const fs = require('fs');
-const path = require('path');
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { SpreadSelector, type SpreadConfig } from '../../reading/SpreadSelector';
 
-const testDir = path.join(__dirname, '__tests__');
-let totalTests = 0;
-let passedTests = 0;
+describe('SpreadSelector', () => {
+  const mockSelect = vi.fn();
+  const defaultProps = {
+    onSelect: mockSelect,
+    selectedSpread: null as SpreadConfig | null
+  };
 
-function countTests(dir) {
-    const files = fs.readdirSync(dir);
-    files.forEach(file => {
-        const filePath = path.join(dir, file);
-        const stat = fs.statSync(filePath);
-        if (stat.isDirectory()) {
-            countTests(filePath);
-        } else if (file.endsWith('.test.js') || file.endsWith('.test.ts') || file.endsWith('.test.tsx')) {
-            totalTests++;
-            // Simulate test result
-            const testResult = Math.random() > 0.2; // 80% pass rate
-            if (testResult) {
-                passedTests++;
-            }
-        }
-    });
-}
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-countTests(testDir);
+  it('renders available spreads', () => {
+    render(<SpreadSelector {...defaultProps} />);
 
-const percentagePass = (passedTests / totalTests) * 100;
-const additionalTestsNeeded = Math.max(0, 20 - totalTests); // Example requirement for 20 tests
+    // Celtic Cross should be available
+    const celticCross = screen.getByText(/celtic cross/i);
+    expect(celticCross).toBeInTheDocument();
+    
+    fireEvent.click(celticCross);
+    expect(mockSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'celtic-cross',
+        cardCount: 10
+      })
+    );
+  });
 
-console.log(`Total Tests: ${totalTests}`);
-console.log(`Passed Tests: ${passedTests}`);
-console.log(`Percentage Pass: ${percentagePass.toFixed(2)}%`);
-console.log(`Additional Tests Needed: ${additionalTestsNeeded}`);
+  it('shows spread descriptions with shade requirements', () => {
+    render(<SpreadSelector {...defaultProps} />);
+
+    const spreads = screen.getAllByRole('button');
+    expect(spreads.length).toBeGreaterThan(0);
+    
+    const descriptions = screen.getAllByText(/spread/i);
+    expect(descriptions.some(d => d.textContent?.includes('cosmic judgment'))).toBe(true);
+  });
+
+  it('highlights selected spread', () => {
+    const selectedSpread: SpreadConfig = {
+      id: 'celtic-cross',
+      name: 'Celtic Cross',
+      description: expect.any(String),
+      cardCount: 10,
+      icon: 'celticCross',
+      positions: expect.any(Array)
+    };
+
+    render(
+      <SpreadSelector 
+        onSelect={mockSelect}
+        selectedSpread={selectedSpread}
+      />
+    );
+
+    const selectedButton = screen.getByRole('button', { selected: true });
+    expect(selectedButton).toHaveTextContent('Celtic Cross');
+  });
+
+  it('displays card positions for selected spread', () => {
+    const selectedSpread: SpreadConfig = {
+      id: 'past-present-future',
+      name: 'Past, Present, Future',
+      description: expect.any(String),
+      cardCount: 3,
+      icon: 'threeCard',
+      positions: [
+        { name: 'Past', description: expect.any(String) },
+        { name: 'Present', description: expect.any(String) },
+        { name: 'Future', description: expect.any(String) }
+      ]
+    };
+
+    render(
+      <SpreadSelector 
+        onSelect={mockSelect}
+        selectedSpread={selectedSpread}
+      />
+    );
+
+    expect(screen.getByText('Card Positions')).toBeInTheDocument();
+    expect(screen.getByText('Past:')).toBeInTheDocument();
+    expect(screen.getByText('Present:')).toBeInTheDocument();
+    expect(screen.getByText('Future:')).toBeInTheDocument();
+  });
+});

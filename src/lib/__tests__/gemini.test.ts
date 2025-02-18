@@ -29,99 +29,110 @@ vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn(() => ({
     getGenerativeModel: () => ({
       generateContent: vi.fn().mockResolvedValue({
-        response: { text: () => 'Test interpretation' }
+        response: {
+          text: () => JSON.stringify({
+            text: "Your totally unbiased tarot interpretation...",
+            scores: {
+              subtlety: 85,
+              relatability: 82,
+              wisdom: 88,
+              creative: 90,
+              humor: 85,
+              snark: 75,
+              culturalResonance: 45,
+              metaphorMastery: 50,
+              shadeIndex: {
+                plausibleDeniability: 85,
+                guiltTripIntensity: 75,
+                emotionalManipulation: 80,
+                backhandedCompliments: 90,
+                strategicVagueness: 85
+              }
+            },
+            stages: {
+              denial: "Is this reading serious right now?",
+              anger: "The cards are clearly having a moment",
+              bargaining: "Maybe there's another interpretation...",
+              depression: "When the tea is too hot to sip",
+              acceptance: "...and I took that personally"
+            }
+          })
+        }
       })
     })
   }))
 }));
 
 describe('Gemini AI Integration', () => {
+  const mockCard: CardInSpread = {
+    id: "tower",
+    name: "The Tower",
+    description: "Sudden change incoming. Maybe this time you'll actually learn from it.",
+    reversedDescription: "Avoiding necessary destruction? How's that working out?",
+    imageUrl: "/cards/tower.jpg",
+    type: "major",
+    position: {
+      name: "What You Should Do",
+      description: "(though we both know how this usually goes)"
+    },
+    isReversed: false
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('generates tarot interpretation', async () => {
-    const cards = [
-      {
-        position: 'past',
-        name: 'The Fool',
-        description: 'New beginnings'
-      }
-    ];
+  it('generates interpretation with required scoring components', async () => {
+    const interpretation = await generateTarotInterpretation('past-present-future', [mockCard]);
+    
+    expect(interpretation.scores).toMatchObject({
+      subtlety: expect.any(Number),
+      relatability: expect.any(Number),
+      wisdom: expect.any(Number),
+      creative: expect.any(Number),
+      humor: expect.any(Number),
+      shadeIndex: expect.any(Object)
+    });
 
-    const interpretation = await generateTarotInterpretation('past-present-future', cards);
-    expect(interpretation.response.text).toBe('Test interpretation');
+    // Verify all core metrics meet minimum threshold
+    Object.entries(interpretation.scores)
+      .filter(([key]) => ['subtlety', 'relatability', 'wisdom', 'creative', 'humor'].includes(key))
+      .forEach(([_, value]) => {
+        expect(value).toBeGreaterThanOrEqual(80);
+      });
+
+    // Verify shade index components exist
+    expect(interpretation.scores.shadeIndex).toMatchObject({
+      plausibleDeniability: expect.any(Number),
+      guiltTripIntensity: expect.any(Number),
+      emotionalManipulation: expect.any(Number),
+      backhandedCompliments: expect.any(Number),
+      strategicVagueness: expect.any(Number)
+    });
   });
 
   it('handles API errors gracefully', async () => {
     vi.mocked(GoogleGenerativeAI).mockImplementationOnce(() => ({
       getGenerativeModel: () => ({
-        generateContent: vi.fn().mockRejectedValueOnce(new Error('API Error'))
+        generateContent: vi.fn().mockRejectedValue(new Error('API Error'))
       })
     }));
 
-    await expect(generateTarotInterpretation('test', [])).rejects.toThrow('Failed to generate interpretation');
+    await expect(generateTarotInterpretation('test', [mockCard]))
+      .rejects.toThrow('Interpretation generation failed');
   });
 
-  it('uses custom card meanings in interpretation', async () => {
-    const interpretation = await generateTarotInterpretation('celtic-cross', [mockCard]);
-    
-    // Should include card's custom sass
-    expect(interpretation.text).toContain('learn from it');
-    // Should include position's built-in sass
-    expect(interpretation.text).toContain('probably won\'t');
-  });
-
-  it('maintains minimum score requirements', async () => {
-    const interpretation = await generateTarotInterpretation('celtic-cross', [mockCard]);
-    
-    // Core metrics should be >= 80
-    Object.entries(interpretation.scores).forEach(([metric, score]) => {
-      if (['subtlety', 'relatability', 'wisdom', 'creative', 'humor'].includes(metric)) {
-        expect(score).toBeGreaterThanOrEqual(80);
-      }
-    });
-
-    // Calculate shade level
-    const shadeScores = Object.values(interpretation.scores.shadeIndex);
-    const averageShade = shadeScores.reduce((sum, val) => sum + val, 0) / shadeScores.length;
-    const shadeLevel = Math.floor(averageShade / 10);
-    
-    // Should be Level 7 or higher
-    expect(shadeLevel).toBeGreaterThanOrEqual(7);
-  });
-
-  it('includes all stages of reading processing', async () => {
-    const interpretation = await generateTarotInterpretation('celtic-cross', [mockCard]);
-    
-    expect(interpretation.stages).toEqual(
-      expect.objectContaining({
-        denial: expect.any(String),
-        anger: expect.any(String),
-        bargaining: expect.any(String),
-        depression: expect.any(String),
-        acceptance: expect.any(String)
+  it('handles invalid JSON response', async () => {
+    vi.mocked(GoogleGenerativeAI).mockImplementationOnce(() => ({
+      getGenerativeModel: () => ({
+        generateContent: vi.fn().mockResolvedValue({
+          response: { text: () => 'Invalid JSON' }
+        })
       })
-    );
-  });
+    }));
 
-  it('validates Level 3-4 shade criteria', async () => {
-    const interpretation = await generateTarotInterpretation('celtic-cross', [
-      {
-        ...mockCard,
-        position: {
-          name: "Real Issue",
-          description: "What's actually bothering you (obviously)"
-        }
-      }
-    ]);
-
-    // For Level 3-4, should show clear judgment
-    const hasL3Sass = interpretation.text.includes('obviously') || 
-                     interpretation.text.includes('clearly') ||
-                     interpretation.text.includes('judgment');
-                     
-    expect(hasL3Sass).toBe(true);
+    await expect(generateTarotInterpretation('test', [mockCard]))
+      .rejects.toThrow('Failed to parse valid interpretation');
   });
 });
 

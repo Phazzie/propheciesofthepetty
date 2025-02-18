@@ -16,40 +16,53 @@
  * - Color contrast meets WCAG standards
  */
 
-import { useState } from 'react';
-import { SpreadSelector, type SpreadConfig } from './SpreadSelector';
+import React, { useState } from 'react';
+import { SpreadSelector } from './SpreadSelector';
 import { ReadingLayout } from './ReadingLayout';
 import { CardDeck } from './CardDeck';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { AlertCircle } from 'lucide-react';
-import { useCards } from '../../hooks/useDatabase';
 import { generateTarotInterpretation } from '../../lib/gemini';
-import type { Card } from '../../types';
+import type { Card, ReadingInterpretation } from '../../types';
+import type { SpreadConfig } from './SpreadSelector';
 
 interface Props {
-  onComplete?: () => void;
+  onComplete?: (reading: ReadingInterpretation) => void;
 }
 
-interface ExtendedCard extends Card {
+interface SelectedCard extends Card {
   position: number;
   isReversed: boolean;
 }
 
-export default function ReadingInterface({ onComplete }: Props) {
+export const ReadingInterface: React.FC<Props> = ({ onComplete }) => {
   const [selectedSpread, setSelectedSpread] = useState<SpreadConfig | null>(null);
+  const [selectedCards, setSelectedCards] = useState<SelectedCard[]>([]);
+  const [interpretation, setInterpretation] = useState<ReadingInterpretation | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cards, setCards] = useState<ExtendedCard[]>([]);
+  const [cards, setCards] = useState<SelectedCard[]>([]);
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
-  const [interpretation, setInterpretation] = useState<any>(null);
-  const [userInput, setUserInput] = useState('');
-  const { getCards } = useCards();
+
+  const handleQuestionSubmit = (question: string) => {
+    // Clear any previous error state
+    setError(null);
+    
+    // Reset previous reading if starting new
+    setSelectedSpread(null);
+    setCards([]);
+    setSelectedCardIds(new Set());
+    setInterpretation(undefined);
+    
+    // Store question for reading generation
+    localStorage.setItem('current_question', question);
+  };
 
   const handleCardSelect = (card: Card, isReversed: boolean) => {
     if (!selectedSpread) return;
     
     const position = cards.length;
-    const extendedCard: ExtendedCard = {
+    const extendedCard: SelectedCard = {
       ...card,
       position,
       isReversed
@@ -64,7 +77,7 @@ export default function ReadingInterface({ onComplete }: Props) {
     }
   };
 
-  const generateReading = async (selectedCards: ExtendedCard[], spread: SpreadConfig) => {
+  const generateReading = async (selectedCards: SelectedCard[], spread: SpreadConfig) => {
     setLoading(true);
     setError(null);
     
@@ -80,7 +93,7 @@ export default function ReadingInterface({ onComplete }: Props) {
       );
 
       setInterpretation(readingInterpretation);
-      onComplete?.();
+      onComplete?.(readingInterpretation);
     } catch (err) {
       setError('Failed to generate reading');
       console.error(err);
@@ -91,9 +104,8 @@ export default function ReadingInterface({ onComplete }: Props) {
 
   const handleSpreadSelect = (spread: SpreadConfig) => {
     setSelectedSpread(spread);
-    setCards([]);
-    setSelectedCardIds(new Set());
-    setInterpretation(null);
+    setSelectedCards([]);
+    setInterpretation(undefined);
   };
 
   if (error) {
@@ -107,23 +119,20 @@ export default function ReadingInterface({ onComplete }: Props) {
 
   return (
     <div className="space-y-8">
-      <SpreadSelector
-        selectedSpread={selectedSpread}
-        onSelect={handleSpreadSelect}
+      <ReadingLayout
+        spreadType={selectedSpread?.id || 'past-present-future'}
+        cards={selectedCards}
+        interpretation={interpretation}
+        onQuestionSubmit={handleQuestionSubmit}
       />
 
-      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-4">
-          Describe Your Problem or Question
-        </h3>
-        <textarea
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          placeholder="Enter your problem or question here..."
+      {!selectedSpread && (
+        <SpreadSelector
+          onSelect={handleSpreadSelect}
+          selectedSpread={selectedSpread}
         />
-      </div>
-      
+      )}
+
       {selectedSpread && !interpretation && (
         <div className="space-y-6">
           <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6">
@@ -154,9 +163,8 @@ export default function ReadingInterface({ onComplete }: Props) {
           spreadType={selectedSpread.id}
           cards={cards}
           interpretation={interpretation}
-          isRevealed={!!interpretation}
         />
       )}
     </div>
   );
-}
+};

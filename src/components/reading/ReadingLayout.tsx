@@ -1,17 +1,17 @@
 import React from 'react';
 import type { Card, ReadingInterpretation } from '../../types';
 import { ReadingScores } from './ReadingScores';
+import { SPREADS, type SpreadConfig } from './SpreadSelector';
 
 interface Props {
   spreadType: string;
   cards: (Card & { position: number; isReversed: boolean })[];
   interpretation?: ReadingInterpretation;
-  isRevealed: boolean;
+  onQuestionSubmit?: (question: string) => void;
 }
 
 const getPositionName = (spreadType: string, position: number): string => {
-  // Use the SPREADS constant from SpreadSelector for consistent position names and sass
-  const spread = SPREADS.find(s => s.id === spreadType);
+  const spread = SPREADS.find((s: SpreadConfig) => s.id === spreadType);
   if (spread && spread.positions[position]) {
     return `${spread.positions[position].name} - ${spread.positions[position].description}`;
   }
@@ -21,10 +21,44 @@ const getPositionName = (spreadType: string, position: number): string => {
 export const ReadingLayout: React.FC<Props> = ({
   spreadType,
   cards,
-  interpretation
+  interpretation,
+  onQuestionSubmit
 }) => {
+  const [question, setQuestion] = React.useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onQuestionSubmit && question.trim()) {
+      onQuestionSubmit(question.trim());
+    }
+  };
+
   return (
     <div className="space-y-8">
+      {/* Question input section */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <label htmlFor="question" className="block text-lg font-semibold text-purple-900">
+            What's on your mind? (But like, actually?)
+          </label>
+          <textarea
+            id="question"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            className="w-full p-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+            rows={3}
+            placeholder="Tell us what's bothering you (we already know, but let's pretend)"
+          />
+          <button
+            type="submit"
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            disabled={!question.trim()}
+          >
+            Ask Away
+          </button>
+        </form>
+      </div>
+
       {/* Card layout section */}
       <div className={`grid gap-4 ${
         spreadType === 'celtic-cross' 
@@ -87,7 +121,9 @@ export const ReadingLayout: React.FC<Props> = ({
             <h3 className="text-lg font-semibold text-purple-900 mb-4">Your Reading</h3>
             <p className="text-gray-700 whitespace-pre-wrap">{interpretation.text}</p>
           </div>
-          <ReadingScores scores={interpretation.scores} />
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <ReadingScores interpretation={interpretation} />
+          </div>
         </div>
       )}
     </div>

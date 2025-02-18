@@ -26,7 +26,7 @@ const spreadIcons = {
   noOffense: Coffee
 } as const;
 
-const SPREADS: SpreadConfig[] = [
+export const SPREADS: SpreadConfig[] = [
   {
     id: 'past-present-future',
     name: 'Past, Present, Future',
@@ -42,36 +42,20 @@ const SPREADS: SpreadConfig[] = [
   {
     id: 'celtic-cross',
     name: 'Celtic Cross',
-    description: "A comprehensive look at your situation from all angles, because one perspective isn't enough to judge you.",
+    description: "A comprehensive spread for deep insights and cosmic judgment, because one perspective isn't enough to judge you.",
     cardCount: 10,
     icon: 'celticCross',
     positions: [
       { name: 'Present', description: "The current situation (that you got yourself into)" },
       { name: 'Challenge', description: "What's blocking you (besides yourself)" },
-      { name: 'Past', description: "Recent events (that you should have handled better)" },
-      { name: 'Future', description: "What's coming (whether you're ready or not)" },
-      { name: 'Above', description: "Your aspirations (however unrealistic)" },
-      { name: 'Below', description: "Your foundation (or lack thereof)" },
-      { name: 'Advice', description: "What you should do (but probably won't)" },
-      { name: 'External', description: "Outside influences (that you'll blame anyway)" },
+      { name: 'Foundation', description: "Your foundation (or lack thereof)" },
+      { name: 'Recent Past', description: "What brought you here (like it or not)" },
+      { name: 'Higher Self', description: "Your aspirations (however unrealistic)" },
+      { name: 'Near Future', description: "What's coming (whether you're ready or not)" },
+      { name: 'Current Attitude', description: "How you're handling this (debatable)" },
+      { name: 'External Factor', description: "Outside influences (that you'll blame anyway)" },
       { name: 'Hopes/Fears', description: "Your anxieties (totally justified this time)" },
-      { name: 'Outcome', description: "The final result (no pressure)" }
-    ]
-  },
-  {
-    id: 'star-spread',
-    name: 'Star Spread',
-    description: "A star-shaped spread for insight and guidance, because you need all the help you can get.",
-    cardCount: 7,
-    icon: 'starSpread',
-    positions: [
-      { name: 'Center', description: "Your core issue (the real one)" },
-      { name: 'Above', description: "Higher guidance (if you'll listen)" },
-      { name: 'Below', description: "Hidden factors (that you're ignoring)" },
-      { name: 'Left', description: "Past influence (your baggage)" },
-      { name: 'Right', description: "Future potential (don't mess it up)" },
-      { name: 'Rising', description: "Growing influence (incoming drama)" },
-      { name: 'Falling', description: "Fading influence (finally letting go)" }
+      { name: 'Final Outcome', description: "Where this leads (no pressure)" }
     ]
   },
   {
@@ -140,10 +124,10 @@ export const SpreadSelector: FC<Props> = ({ onSelect, selectedSpread }) => {
     <div className="space-y-8">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-purple-900 mb-2">
-          Choose Your Spread
+          Now, Choose Your Spread
         </h2>
         <p className="text-gray-600">
-          Select a spread type to begin your totally unbiased reading
+          Pick a spread that matches your energy (we can feel it from here)
         </p>
       </div>
 
@@ -163,6 +147,7 @@ export const SpreadSelector: FC<Props> = ({ onSelect, selectedSpread }) => {
                     : 'bg-white hover:bg-purple-50 text-gray-800 shadow-md hover:scale-102'
                   }
                 `}
+                aria-selected={isSelected}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={isSelected ? 'text-white' : 'text-purple-600'}>

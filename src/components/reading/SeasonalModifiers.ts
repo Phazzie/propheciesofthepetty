@@ -1,3 +1,5 @@
+import { type ThematicCategory } from '../types';
+
 export interface SeasonalModifier {
   name: string;
   period: {
@@ -89,16 +91,93 @@ export const SEASONAL_MODIFIERS: SeasonalModifier[] = [
   }
 ];
 
-export function getActiveSeasonalModifiers(date: Date = new Date()): SeasonalModifier[] {
-  return SEASONAL_MODIFIERS.filter(modifier => {
-    if (modifier.name === "Full Moon") {
-      // Calculate full moon phase - simplified for example
-      return false; // Replace with actual moon phase calculation
-    }
-
-    const start = new Date(date.getFullYear(), modifier.period.start.month - 1, modifier.period.start.day);
-    const end = new Date(date.getFullYear(), modifier.period.end.month - 1, modifier.period.end.day);
-    
-    return date >= start && date <= end;
-  });
+interface SeasonalEvent {
+  name: string;
+  startDate: string;  // MM-DD
+  endDate: string;    // MM-DD
+  scoreMultiplier: number;
+  description: string;
+  categories: ThematicCategory[];
 }
+
+const SEASONAL_EVENTS: SeasonalEvent[] = [
+  {
+    name: "Mercury Retrograde",
+    startDate: "12-29",
+    endDate: "01-18",
+    scoreMultiplier: 1.3,
+    description: "Communication chaos? More like opportunity for advanced shade.",
+    categories: ['snark', 'culturalResonance']
+  },
+  {
+    name: "April Fool's Season",
+    startDate: "03-25",
+    endDate: "04-02",
+    scoreMultiplier: 1.2,
+    description: "When clever observations are basically mandatory.",
+    categories: ['humor', 'metaphorMastery']
+  },
+  {
+    name: "Holiday Season",
+    startDate: "11-20",
+    endDate: "12-31",
+    scoreMultiplier: 1.4,
+    description: "Family gatherings? Perfect time for elevated passive aggression.",
+    categories: ['culturalResonance', 'metaphorMastery']
+  },
+  {
+    name: "Awards Season",
+    startDate: "01-07",
+    endDate: "03-15",
+    scoreMultiplier: 1.25,
+    description: "Channel your inner critic with red carpet energy.",
+    categories: ['snark', 'culturalResonance']
+  }
+];
+
+export const getActiveSeasonalModifiers = (): SeasonalEvent[] => {
+  const today = new Date();
+  const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+  const currentDay = String(today.getDate()).padStart(2, '0');
+  const currentDate = `${currentMonth}-${currentDay}`;
+
+  return SEASONAL_EVENTS.filter(event => {
+    const isYearWrap = event.startDate > event.endDate;
+    
+    if (isYearWrap) {
+      // Event wraps around the year (e.g., Dec 29 - Jan 18)
+      return currentDate >= event.startDate || currentDate <= event.endDate;
+    } else {
+      // Event within same year
+      return currentDate >= event.startDate && currentDate <= event.endDate;
+    }
+  });
+};
+
+export const calculateSeasonalBonus = (baseScore: number, categories: ThematicCategory[]): {
+  modifiedScore: number;
+  activeEvents: SeasonalEvent[];
+  bonusPoints: number;
+} => {
+  const activeEvents = getActiveSeasonalModifiers();
+  let maxMultiplier = 1;
+  
+  // Find events that match the reading's categories
+  const relevantEvents = activeEvents.filter(event => 
+    event.categories.some(category => categories.includes(category))
+  );
+
+  if (relevantEvents.length > 0) {
+    // Use the highest applicable multiplier
+    maxMultiplier = Math.max(...relevantEvents.map(e => e.scoreMultiplier));
+  }
+
+  const modifiedScore = Math.round(baseScore * maxMultiplier);
+  const bonusPoints = modifiedScore - baseScore;
+
+  return {
+    modifiedScore,
+    activeEvents,
+    bonusPoints
+  };
+};

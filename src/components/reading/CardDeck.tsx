@@ -4,6 +4,7 @@ import { Sparkles, AlertCircle, Loader, Lock } from 'lucide-react';
 import { TarotCard } from '../TarotCard';
 import { useAuth } from '../../context/AuthContext';
 import { useCards } from '../../hooks/useDatabase';
+import PredictiveScoring from './PredictiveScoring';
 import type { Card } from '../../types';
 
 interface CardDeckProps {
@@ -74,6 +75,12 @@ export const CardDeck: FC<CardDeckProps> = ({
 
   return (
     <div className="space-y-6">
+      <PredictiveScoring 
+        selectedCards={selectedCards}
+        maxCards={maxCards}
+        isPredictingScore={true}
+      />
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {cards.map((card) => {
           const isLocked = isCardLocked(card);

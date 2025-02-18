@@ -18,6 +18,7 @@ export default defineConfig({
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json', 'html'],
+      exclude: ['**/node_modules/**', '**/__tests__/**']
     },
     deps: {
       optimizer: {
@@ -26,13 +27,14 @@ export default defineConfig({
         }
       }
     },
-    pool: 'forks', // Use process pool instead of threads
+    pool: 'forks',
     poolOptions: {
       threads: {
-        singleThread: true // Run in single thread to reduce memory usage
+        singleThread: true
       }
     },
-    testTimeout: 10000, // Increase timeout to 10s
-    maxConcurrency: 1 // Run tests serially
-  },
+    testTimeout: 10000,
+    maxConcurrency: 1,
+    reporters: ['verbose']
+  }
 });

@@ -58,8 +58,26 @@ class Logger {
   }
 
   private async sendToLogService(entry: LogEntry) {
-    // Implementation for sending logs to a service in production
-    // This is a placeholder for future implementation
+    try {
+      const response = await fetch('/api/logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...this.formatEntry(entry),
+          environment: import.meta.env.MODE,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to send log to service:', response.statusText);
+      }
+    } catch (error) {
+      // Avoid infinite loop by not logging this error
+      console.error('Error sending log to service:', error);
+    }
   }
 
   log(level: LogLevel, message: string, ...args: any[]) {
