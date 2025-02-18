@@ -29,10 +29,7 @@
 - [x] Project setup & configuration
 - [x] Basic components
 - [x] Reading scoring system
-- [ ] Card reading interface
-- [ ] Score visualization
-- [ ] Testing coverage
-
+- [ ] Card reading interfacecan we 
 ### Phase 2: Data & Auth
 - [ ] Supabase setup
 - [ ] User authentication
