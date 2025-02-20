@@ -1,7 +1,7 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, ArrowLeft, Home } from 'lucide-react';
 import { logger } from '../lib/logger';
-import { analytics } from '../lib/analytics';
+import { RecoverySystem } from '../lib/recovery';
 import { handleError, AppError } from '../lib/errors';
 
 interface Props {
@@ -9,29 +9,37 @@ interface Props {
   fallbackUI?: ReactNode;
   onReset?: () => void;
   onBack?: () => void;
+  maxRetries?: number;
 }
 
 interface State {
   hasError: boolean;
   error?: AppError;
   errorInfo?: ErrorInfo;
+  retryCount: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { 
+      hasError: false,
+      retryCount: 0
+    };
   }
 
   static getDerivedStateFromError(error: Error): State {
     const handledError = handleError(error);
-    return { hasError: true, error: handledError };
+    return { 
+      hasError: true, 
+      error: handledError,
+      retryCount: 0
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const handledError = handleError(error);
     
-    // Enhanced error logging with severity tracking
     logger.error(
       'Error caught by boundary',
       handledError,
@@ -45,20 +53,31 @@ export class ErrorBoundary extends Component<Props, State> {
       'componentDidCatch'
     );
 
-    // Track error in analytics with enhanced metadata
-    analytics.trackEvent({
-      eventType: 'error_boundary_catch',
-      data: {
-        errorType: handledError.name,
-        errorCode: handledError.code,
-        severity: handledError.severity,
-        environment: import.meta.env.MODE,
-        timestamp: new Date().toISOString()
-      }
-    });
-
     this.setState({ error: handledError, errorInfo });
+    
+    // Attempt automatic recovery for recoverable errors
+    if (handledError.severity === 'low') {
+      this.attemptRecovery();
+    }
   }
+
+  private attemptRecovery = async () => {
+    const { maxRetries = 3 } = this.props;
+    const { retryCount, error } = this.state;
+
+    if (retryCount < maxRetries && error) {
+      try {
+        await RecoverySystem.recover(error);
+        this.setState({ 
+          hasError: false, 
+          error: undefined, 
+          retryCount: retryCount + 1 
+        });
+      } catch (recoveryError) {
+        logger.error('Recovery attempt failed', recoveryError);
+      }
+    }
+  };
 
   private handleRefresh = () => {
     if (this.props.onReset) {

@@ -2,6 +2,23 @@ import { CoreMetrics, ShadeIndex } from '../types';
 import { ExtendedMetrics } from '../types';
 import { ValidationError } from './errors';
 
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+interface PasswordStrengthResult {
+  score: number;  // 0-4 scale
+  requirements: {
+    hasMinLength: boolean;
+    hasUppercase: boolean;
+    hasLowercase: boolean;
+    hasNumber: boolean;
+    hasSpecialChar: boolean;
+  };
+  feedback: string[];
+}
+
 // Core metrics must reach 80/100 (equivalent to original 8/10)
 export const CORE_METRIC_THRESHOLD = 80;
 
@@ -111,3 +128,71 @@ export const validateInput = <T>(value: T, rules: ValidationRule<T>[]) => {
 
 export const validateEmail = (email: string) => validateInput(email, emailRules);
 export const validatePassword = (password: string) => validateInput(password, passwordRules);
+
+export class ValidationUtils {
+  static validateEmail(email: string): ValidationResult {
+    const errors: string[] = [];
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email) {
+      errors.push('Email is required');
+    } else if (!emailRegex.test(email)) {
+      errors.push('Please enter a valid email address');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  static checkPasswordStrength(password: string): PasswordStrengthResult {
+    const requirements = {
+      hasMinLength: password.length >= 8,
+      hasUppercase: /[A-Z]/.test(password),
+      hasLowercase: /[a-z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+
+    const feedback: string[] = [];
+    if (!requirements.hasMinLength) feedback.push('Must be at least 8 characters long');
+    if (!requirements.hasUppercase) feedback.push('Must include an uppercase letter');
+    if (!requirements.hasLowercase) feedback.push('Must include a lowercase letter');
+    if (!requirements.hasNumber) feedback.push('Must include a number');
+    if (!requirements.hasSpecialChar) feedback.push('Must include a special character');
+
+    // Calculate score based on met requirements
+    const metRequirements = Object.values(requirements).filter(Boolean).length;
+    const score = Math.min(4, Math.floor(metRequirements * 0.8));
+
+    return {
+      score,
+      requirements,
+      feedback
+    };
+  }
+
+  static validatePassword(password: string): ValidationResult {
+    const { feedback, score } = this.checkPasswordStrength(password);
+    
+    return {
+      isValid: score >= 3,
+      errors: feedback
+    };
+  }
+
+  static validatePasswordConfirmation(password: string, confirmation: string): ValidationResult {
+    return {
+      isValid: password === confirmation,
+      errors: password !== confirmation ? ['Passwords do not match'] : []
+    };
+  }
+
+  static validateTermsAcceptance(accepted: boolean): ValidationResult {
+    return {
+      isValid: accepted,
+      errors: !accepted ? ['You must accept the terms and conditions'] : []
+    };
+  }
+}

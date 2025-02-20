@@ -1,9 +1,12 @@
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { User } from '../types';
+import type { User, Session } from '../types';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { AuthError, ValidationError } from '../lib/errors';
 import { logger } from '../lib/logger';
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { loginRateLimiter } from '../lib/rateLimit';
+import { SessionManager } from '../lib/sessionManager';
+import { RecoverySystem } from '../lib/recovery';
 
 // Test account for development
 const TEST_USER = {
@@ -21,14 +24,19 @@ const validatePassword = (password: string): boolean => {
   return password.length >= 8;
 };
 
-interface AuthContextType {
+interface AuthState {
   user: User | null;
+  session: Session | null;
   loading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+}
+
+interface AuthContextType extends AuthState {
+  login: (email: string, password: string, remember?: boolean) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 // Export the context directly
@@ -43,70 +51,115 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    session: null,
+    loading: true,
+    error: null
+  });
 
-  useEffect(() => {
-    const checkSession = async () => {
-      logger.debug('Checking auth session', undefined, 'AuthContext', 'checkSession');
-      try {
-        // Handle test account in development
-        if (import.meta.env.DEV && import.meta.env.VITE_USE_TEST_ACCOUNT === 'true') {
-          logger.debug('Using test account', { email: TEST_USER.email });
-          setUser(TEST_USER);
-          return;
-        }
+  const setLoading = (loading: boolean) => setState(s => ({ ...s, loading }));
+  const setError = (error: string | null) => setState(s => ({ ...s, error }));
+  const setUser = (user: User | null) => setState(s => ({ ...s, user }));
+  const setSession = (session: Session | null) => setState(s => ({ ...s, session }));
 
-        // Check for existing session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          throw new AuthError(sessionError.message);
-        }
-
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email!,
-            subscriptionType: 'free'
-          });
-          logger.info('Session restored', { userId: session.user.id });
-        }
-
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Session check failed';
-        logger.error('Session check failed', err instanceof Error ? err : new Error(message));
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      logger.debug('Auth state changed', { event }, 'AuthContext', 'onAuthStateChange');
-      
-      if (event === 'SIGNED_IN' && session?.user) {
+  const refreshSession = useCallback(async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.refreshSession();
+      if (error) throw error;
+      if (session) {
+        setSession(session);
         setUser({
           id: session.user.id,
           email: session.user.email!,
           subscriptionType: 'free'
         });
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
       }
-    });
+    } catch (err) {
+      logger.error('Session refresh failed', err);
+      await logout();
+    }
+  }, []);
 
-    checkSession();
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        await SessionManager.initialize();
+        const sessionState = await SessionManager.getSessionState();
+        
+        if (sessionState.isValid) {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) throw error;
+          
+          if (session?.user) {
+            setSession(session);
+            setUser({
+              id: session.user.id,
+              email: session.user.email!,
+              subscriptionType: 'free'
+            });
+          }
+        }
+      } catch (err) {
+        logger.error('Auth initialization failed', err);
+        setError('Failed to initialize authentication');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Cleanup subscription on unmount
+    initializeAuth();
+  }, []);
+
+  useEffect(() => {
+    const setupAuthListener = () => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        logger.debug('Auth state changed', { event });
+        
+        if (event === 'SIGNED_IN') {
+          if (session?.user) {
+            await SessionManager.setSession(session);
+            setSession(session);
+            setUser({
+              id: session.user.id,
+              email: session.user.email!,
+              subscriptionType: 'free'
+            });
+          }
+        } else if (event === 'SIGNED_OUT') {
+          SessionManager.clearSession();
+          setUser(null);
+          setSession(null);
+        } else if (event === 'TOKEN_REFRESHED') {
+          await RecoverySystem.withRetry(
+            async () => {
+              const isValid = await SessionManager.validateSession();
+              if (!isValid) {
+                throw new AuthError('Session validation failed');
+              }
+            },
+            {
+              retryConfig: {
+                maxAttempts: 3,
+                initialDelay: 1000
+              }
+            }
+          );
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    };
+
+    const cleanup = setupAuthListener();
     return () => {
-      subscription.unsubscribe();
+      cleanup();
     };
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, remember = false) => {
     logger.debug('Login attempt', { email }, 'AuthContext', 'login');
     setLoading(true);
     setError(null);
@@ -120,6 +173,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new ValidationError('Password must be at least 8 characters long');
       }
 
+      loginRateLimiter.check(email);
+
       if (import.meta.env.DEV && import.meta.env.VITE_USE_TEST_ACCOUNT === 'true') {
         logger.debug('Using test account', { email: TEST_USER.email });
         setUser(TEST_USER);
@@ -128,17 +183,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
+        options: {
+          persistSession: remember
+        }
       });
 
       if (authError) throw new AuthError(authError.message);
 
       if (data.user) {
+        await SessionManager.setSession(data.session!);
+        setSession(data.session);
         setUser({
           id: data.user.id,
           email: data.user.email!,
           subscriptionType: 'free'
         });
+        loginRateLimiter.reset(email);
         logger.info('Login successful', { userId: data.user.id });
       }
     } catch (err) {
@@ -172,6 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authError) throw new AuthError(authError.message);
 
       if (data.user) {
+        setSession(data.session);
         setUser({
           id: data.user.id,
           email: data.user.email!,
@@ -198,7 +260,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error: authError } = await supabase.auth.signOut();
       if (authError) throw new AuthError(authError.message);
 
+      SessionManager.clearSession();
       setUser(null);
+      setSession(null);
       logger.info('Logout successful');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Logout failed';
@@ -235,16 +299,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const value = {
-    user,
-    loading,
-    error,
+    ...state,
     login,
     register,
     logout,
-    requestPasswordReset
+    requestPasswordReset,
+    refreshSession
   };
 
-  if (loading) {
+  if (state.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-purple-50">
         <LoadingSpinner size={32} message="Loading..." />

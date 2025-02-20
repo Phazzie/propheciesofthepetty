@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ForgotPasswordForm } from '../ForgotPasswordForm';
-import { AuthContext } from '../../../context/AuthContext';
+import { PasswordReset } from '../../../lib/passwordReset';
 import '@testing-library/jest-dom';
 
-// Mock Lucide icons
+vi.mock('../../../lib/passwordReset');
 vi.mock('lucide-react', () => ({
   AlertCircle: () => <div data-testid="alert-icon" />,
   ArrowLeft: () => <div data-testid="arrow-left-icon" />,
@@ -13,65 +13,116 @@ vi.mock('lucide-react', () => ({
 }));
 
 describe('ForgotPasswordForm', () => {
-  const mockRequestPasswordReset = vi.fn();
   const mockOnBack = vi.fn();
-
-  const renderComponent = (authContextValue = {}) => {
-    const defaultAuthContext = {
-      requestPasswordReset: mockRequestPasswordReset,
-      loading: false,
-      error: null,
-      ...authContextValue
-    };
-
-    return render(
-      <AuthContext.Provider value={defaultAuthContext}>
-        <ForgotPasswordForm onBack={mockOnBack} />
-      </AuthContext.Provider>
-    );
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders the form', () => {
-    renderComponent();
-    expect(screen.getByText('Reset Password')).toBeInTheDocument();
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /send reset instructions/i })).toBeInTheDocument();
+  const renderForm = () => {
+    return render(<ForgotPasswordForm onBack={mockOnBack} />);
+  };
+
+  it('validates empty email', async () => {
+    renderForm();
+    
+    fireEvent.click(screen.getByRole('button', { name: /send reset instructions/i }));
+    
+    expect(await screen.findByText(/email is required/i)).toBeInTheDocument();
+    expect(PasswordReset.initiateReset).not.toHaveBeenCalled();
+  });
+
+  it('validates email format', async () => {
+    renderForm();
+    
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'invalid-email' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send reset instructions/i }));
+    
+    expect(await screen.findByText(/please enter a valid email address/i)).toBeInTheDocument();
+    expect(PasswordReset.initiateReset).not.toHaveBeenCalled();
+  });
+
+  it('shows loading state during submission', async () => {
+    vi.mocked(PasswordReset.initiateReset).mockImplementationOnce(() => 
+      new Promise(resolve => setTimeout(resolve, 100))
+    );
+    
+    renderForm();
+    
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'test@example.com' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send reset instructions/i }));
+    
+    expect(screen.getByText(/sending/i)).toBeInTheDocument();
+    expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sending/i })).toBeDisabled();
+  });
+
+  it('displays success message after successful submission', async () => {
+    vi.mocked(PasswordReset.initiateReset).mockResolvedValueOnce();
+    
+    renderForm();
+    
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'test@example.com' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send reset instructions/i }));
+    
+    expect(await screen.findByText(/instructions have been sent/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /return to login/i })).toBeInTheDocument();
+  });
+
+  it('displays error message on failure', async () => {
+    const errorMessage = 'Failed to send reset instructions';
+    vi.mocked(PasswordReset.initiateReset).mockRejectedValueOnce(new Error(errorMessage));
+    
+    renderForm();
+    
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'test@example.com' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send reset instructions/i }));
+    
+    expect(await screen.findByText(errorMessage)).toBeInTheDocument();
+    expect(screen.getByTestId('alert-icon')).toBeInTheDocument();
   });
 
   it('handles back button click', () => {
-    renderComponent();
-    const backButton = screen.getByTestId('arrow-left-icon').parentElement;
-    fireEvent.click(backButton);
+    renderForm();
+    
+    fireEvent.click(screen.getByTestId('arrow-left-icon').parentElement);
     expect(mockOnBack).toHaveBeenCalled();
   });
 
-  it('submits the form and shows success message', async () => {
-    mockRequestPasswordReset.mockResolvedValueOnce(undefined);
-    renderComponent();
+  it('handles return to login after success', async () => {
+    vi.mocked(PasswordReset.initiateReset).mockResolvedValueOnce();
     
-    const emailInput = screen.getByLabelText(/email/i);
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    renderForm();
     
-    const submitButton = screen.getByRole('button', { name: /send reset instructions/i });
-    fireEvent.click(submitButton);
-
-    expect(mockRequestPasswordReset).toHaveBeenCalledWith('test@example.com');
-    expect(await screen.findByText(/instructions have been sent/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'test@example.com' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send reset instructions/i }));
+    
+    await screen.findByText(/instructions have been sent/i);
+    
+    fireEvent.click(screen.getByRole('button', { name: /return to login/i }));
+    expect(mockOnBack).toHaveBeenCalled();
   });
 
-  it('shows loading state during submission', () => {
-    renderComponent({ loading: true });
-    expect(screen.getByText(/sending/i)).toBeInTheDocument();
-    expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
-  });
-
-  it('displays error message when request fails', () => {
-    renderComponent({ error: 'Failed to reset password' });
-    expect(screen.getByText('Failed to reset password')).toBeInTheDocument();
-    expect(screen.getByTestId('alert-icon')).toBeInTheDocument();
+  it('clears validation errors when email input changes', async () => {
+    renderForm();
+    
+    fireEvent.click(screen.getByRole('button', { name: /send reset instructions/i }));
+    expect(await screen.findByText(/email is required/i)).toBeInTheDocument();
+    
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'test@example.com' }
+    });
+    
+    expect(screen.queryByText(/email is required/i)).not.toBeInTheDocument();
   });
 });

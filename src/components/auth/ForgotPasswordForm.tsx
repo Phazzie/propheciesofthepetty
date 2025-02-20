@@ -1,25 +1,41 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { AlertCircle, ArrowLeft, Loader, Mail } from 'lucide-react';
+import { PasswordReset } from '../../lib/passwordReset';
+import { ValidationUtils } from '../../lib/validation';
+import { logger } from '../../lib/logger';
 
 interface Props {
   onBack: () => void;
 }
 
 export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
-  const { requestPasswordReset, loading, error } = useAuth();
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [validation, setValidation] = useState({ isValid: true, error: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setSuccess(false);
-    
+
+    const emailValidation = ValidationUtils.validateEmail(email);
+    if (!emailValidation.isValid) {
+      setValidation({ isValid: false, error: emailValidation.errors[0] });
+      return;
+    }
+
+    setLoading(true);
     try {
-      await requestPasswordReset(email);
+      await PasswordReset.initiateReset(email);
       setSuccess(true);
-    } catch (_err) {
-      setError('Failed to reset password. Please try again.');
+      logger.info('Password reset requested', { email });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to send reset instructions';
+      setError(message);
+      logger.error('Password reset request failed', err);
+    } finally {
       setLoading(false);
     }
   };
@@ -31,6 +47,7 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
           <button
             onClick={onBack}
             className="text-purple-600 hover:text-purple-700 p-2 -ml-2"
+            aria-label="Go back"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -43,6 +60,7 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
           <div className="text-center">
             <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-4">
               Password reset instructions have been sent to your email.
+              Please check your inbox and follow the instructions.
             </div>
             <button
               onClick={onBack}
@@ -52,7 +70,7 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email Address
@@ -63,19 +81,32 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setValidation({ isValid: true, error: '' });
+                  }}
+                  className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                    !validation.isValid || error ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="your@email.com"
                   required
+                  aria-invalid={!validation.isValid || !!error}
+                  aria-describedby={(!validation.isValid || error) ? 'email-error' : undefined}
+                  disabled={loading}
                 />
               </div>
+              {!validation.isValid && (
+                <div id="email-error" className="mt-1 text-sm text-red-600">
+                  {validation.error}
+                </div>
+              )}
               <p className="mt-2 text-sm text-gray-500">
                 Enter your email address and we'll send you instructions to reset your password.
               </p>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
+              <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg" role="alert">
                 <AlertCircle className="w-5 h-5" />
                 <p className="text-sm">{error}</p>
               </div>
@@ -85,6 +116,7 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
               type="submit"
               disabled={loading}
               className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-busy={loading}
             >
               {loading ? (
                 <span className="flex items-center justify-center">
