@@ -1,121 +1,132 @@
+import { analytics } from './analytics';
+import { isAppError } from './errors';
+
 /**
  * Application logging utility
  */
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogContext = Record<string, unknown>;
 
-interface LogEntry {
+interface LogEvent {
   timestamp: string;
-  level: string;
+  level: LogLevel;
   message: string;
-  details?: unknown;
   error?: Error;
+  context?: LogContext;
   component?: string;
   action?: string;
 }
 
 class Logger {
   private isDevelopment = import.meta.env.DEV;
-  private sessionId = crypto.randomUUID();
-  private logBuffer: LogEntry[] = [];
 
-  private formatEntry(entry: LogEntry): string {
-    return JSON.stringify({
-      ...entry,
-      sessionId: this.sessionId,
-      error: entry.error ? {
-        name: entry.error.name,
-        message: entry.error.message,
-        stack: this.isDevelopment ? entry.error.stack : undefined
-      } : undefined
-    });
-  }
-
-  private logToConsole(entry: LogEntry) {
-    const formattedEntry = this.formatEntry(entry);
-
-    switch (entry.level) {
-      case 'debug':
-        if (this.isDevelopment) {
-          console.debug(formattedEntry);
-        }
-        break;
-      case 'info':
-        console.info(formattedEntry);
-        break;
-      case 'warn':
-        console.warn(formattedEntry);
-        break;
-      case 'error':
-        console.error(formattedEntry);
-        break;
+  private formatError(error: unknown): string {
+    if (isAppError(error)) {
+      return `${error.name}[${error.code}]: ${error.message}${error.details ? ` (${JSON.stringify(error.details)})` : ''}`;
     }
-
-    // In production, send errors and warnings to logging service
-    if (!this.isDevelopment && (entry.level === 'error' || entry.level === 'warn')) {
-      this.sendToLogService(entry);
+    if (error instanceof Error) {
+      return `${error.name}: ${error.message}\n${error.stack}`;
     }
+    return String(error);
   }
 
-  private async sendToLogService(entry: LogEntry) {
-    // Implementation for sending logs to a service in production
-    // This is a placeholder for future implementation
-  }
-
-  log(level: LogLevel, message: string, ...args: any[]) {
-    const logEntry = {
+  private createLogEvent(
+    level: LogLevel,
+    message: string,
+    error?: unknown,
+    context?: LogContext,
+    component?: string,
+    action?: string
+  ): LogEvent {
+    return {
       timestamp: new Date().toISOString(),
       level,
       message,
-      args
+      ...(error && { error: error instanceof Error ? error : new Error(String(error)) }),
+      ...(context && { context }),
+      ...(component && { component }),
+      ...(action && { action })
     };
-    this.logBuffer.push(logEntry);
-    console[level](message, ...args);
   }
 
-  debug(message: string, details?: unknown, component?: string, action?: string) {
-    this.logToConsole({
-      timestamp: new Date().toISOString(),
-      level: 'debug',
+  private log(event: LogEvent) {
+    const { timestamp, level, message, error, context, component, action } = event;
+    const logParts = [
+      `[${timestamp}]`,
+      `[${level.toUpperCase()}]`,
+      component && `[${component}]`,
+      action && `[${action}]`,
       message,
-      details,
-      component,
-      action
-    });
+      error && `\nError: ${this.formatError(error)}`,
+      context && `\nContext: ${JSON.stringify(context, null, 2)}`
+    ].filter(Boolean);
+
+    const logMessage = logParts.join(' ');
+
+    switch (level) {
+      case 'debug':
+        if (this.isDevelopment) {
+          console.debug(logMessage);
+        }
+        break;
+      case 'info':
+        console.info(logMessage);
+        break;
+      case 'warn':
+        console.warn(logMessage);
+        break;
+      case 'error':
+        console.error(logMessage);
+        break;
+    }
+
+    // Track errors and warnings in analytics with enhanced context
+    if (level === 'error' || level === 'warn') {
+      analytics.trackEvent({
+        eventType: `log_${level}`,
+        data: {
+          message,
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          errorMessage: error ? this.formatError(error) : undefined,
+          component,
+          action,
+          context,
+          severity: isAppError(error) ? error.severity : 'medium',
+          timestamp,
+          environment: this.isDevelopment ? 'development' : 'production'
+        }
+      });
+
+      // Additional tracking for high severity errors
+      if (isAppError(error) && error.severity === 'high') {
+        analytics.trackEvent({
+          eventType: 'high_severity_error',
+          data: {
+            code: error.code,
+            component,
+            action,
+            context
+          }
+        });
+      }
+    }
   }
 
-  info(message: string, details?: unknown, component?: string, action?: string) {
-    this.logToConsole({
-      timestamp: new Date().toISOString(),
-      level: 'info',
-      message,
-      details,
-      component,
-      action
-    });
+  debug(message: string, context?: LogContext, component?: string, action?: string) {
+    this.log(this.createLogEvent('debug', message, undefined, context, component, action));
   }
 
-  warn(message: string, details?: unknown, component?: string, action?: string) {
-    this.logToConsole({
-      timestamp: new Date().toISOString(),
-      level: 'warn',
-      message,
-      details,
-      component,
-      action
-    });
+  info(message: string, context?: LogContext, component?: string, action?: string) {
+    this.log(this.createLogEvent('info', message, undefined, context, component, action));
   }
 
-  error(message: string, error?: Error, details?: unknown, component?: string, action?: string) {
-    this.logToConsole({
-      timestamp: new Date().toISOString(),
-      level: 'error',
-      message,
-      details,
-      error,
-      component,
-      action
-    });
+  warn(message: string, error?: unknown, context?: LogContext, component?: string, action?: string) {
+    this.log(this.createLogEvent('warn', message, error, context, component, action));
+  }
+
+  error(message: string, error?: unknown, context?: LogContext, component?: string, action?: string) {
+    this.log(this.createLogEvent('error', message, error, context, component, action));
   }
 }
 

@@ -14,7 +14,27 @@ interface Props {
   spreadType: string;
   cards: (Card & { position: number; isReversed: boolean })[];
   isRevealed: boolean;
+  isCustomSpread?: boolean;
+  positions?: Array<{ name: string; description: string }>;
 }
+
+// Utility to generate grid classes for custom layouts
+const getCustomLayoutClass = (totalPositions: number): string => {
+  // For <= 3 cards, use standard 3-column grid
+  if (totalPositions <= 3) return 'grid-cols-3';
+  
+  // For 4 cards, use 2x2 grid
+  if (totalPositions === 4) return 'grid-cols-2 grid-rows-2';
+  
+  // For 5-6 cards, use 3x2 grid
+  if (totalPositions <= 6) return 'grid-cols-3 grid-rows-2';
+  
+  // For 7-9 cards, use 3x3 grid
+  if (totalPositions <= 9) return 'grid-cols-3 grid-rows-3';
+  
+  // For 10+ cards, use 4x3 grid
+  return 'grid-cols-4 grid-rows-3';
+};
 
 const SPREAD_LAYOUTS: Record<string, Position[]> = {
   'past-present-future': [
@@ -220,16 +240,27 @@ const SPREAD_LAYOUTS: Record<string, Position[]> = {
 export const SpreadLayout: React.FC<Props> = ({
   spreadType,
   cards,
-  isRevealed
+  isRevealed,
+  isCustomSpread,
+  positions = []
 }) => {
-  const layout = SPREAD_LAYOUTS[spreadType] || SPREAD_LAYOUTS['past-present-future'];
+  const layout = isCustomSpread 
+    ? positions.map((pos, index) => ({
+        id: `custom-${index}`,
+        name: pos.name,
+        description: pos.description,
+        className: 'col-span-1' // Default positioning for custom spreads
+      }))
+    : SPREAD_LAYOUTS[spreadType] || SPREAD_LAYOUTS['past-present-future'];
   
+  const gridClass = isCustomSpread 
+    ? getCustomLayoutClass(positions.length)
+    : spreadType === 'celtic-cross' 
+      ? 'grid-cols-4 grid-rows-4' 
+      : 'grid-cols-3';
+
   return (
-    <div className={`grid gap-4 ${
-      spreadType === 'celtic-cross' 
-        ? 'grid-cols-4 grid-rows-4'
-        : 'grid-cols-3'
-    }`}>
+    <div className={`grid gap-4 ${gridClass}`}>
       {layout.map((position, index) => {
         const card = cards[index];
         return (

@@ -1,3 +1,43 @@
+# Project Roadmap
+
+## High Impact, Low Effort Tasks
+Tasks that will give the most value for minimal time investment, sorted by impact/effort ratio.
+
+## Current Blockers
+Issues preventing progress on critical paths.
+
+## Component Status
+- 🟢 Complete (tested & documented)
+- 🟡 Partial (needs work)
+- 🔴 Missing/Broken
+
+### Auth System
+Status: [determine from codebase]
+- [ ] Login flow
+- [ ] Session management
+- [ ] Permission system
+
+### Core Features
+Status: [determine from codebase]
+- [ ] Tarot reading system
+- [ ] User profiles
+- [ ] Analysis engine
+
+### Infrastructure
+Status: [determine from codebase]
+- [ ] Database migrations
+- [ ] Error handling
+- [ ] Analytics
+
+## Technical Debt
+Prioritized list of cleanup tasks.
+
+## Next Actions
+1. [To be determined from codebase analysis]
+2. [Will be auto-updated based on changes]
+
+This file is automatically updated based on codebase changes.
+
 # Passive-Aggressive Tarot - Project Roadmap
 
 ## Current Status: Initial Frontend Setup (Phase 1/5)
@@ -124,3 +164,50 @@
 - Maintain comprehensive documentation
 - Regular security audits
 - Performance monitoring
+
+## Current Sprint
+### Authentication (P0)
+- [ ] Fix context provider in tests
+- [ ] Update mock implementations
+- [ ] Complete LoginForm test suite
+- [ ] Resolve RegisterForm validations
+
+### Core Features (P1)
+- [ ] Reading Interface test completion
+- [ ] Spread selection logic fixes
+- [ ] Card rendering optimization
+- [ ] Loading state management
+
+## Technical Debt
+### Testing Infrastructure
+- [ ] Improve test utilities
+- [ ] Add custom test matchers
+- [ ] Set up E2E testing framework
+- [ ] Implement CI test automation
+
+### Code Quality
+- [ ] Refactor context providers
+- [ ] Optimize component renders
+- [ ] Add performance monitoring
+- [ ] Complete error boundary coverage
+
+## Next Milestones
+1. Authentication System (ETA: 2 days)
+   - Complete test coverage
+   - Fix all login/register flows
+   
+2. Reading System (ETA: 3 days)
+   - Fix spread selection
+   - Complete card interactions
+   - Add error recovery
+
+3. Performance (ETA: 2 days)
+   - Optimize loading states
+   - Add caching layer
+   - Implement lazy loading
+
+## Quick Wins
+- Fix LoadingSpinner message rotation
+- Add missing error handlers
+- Update test documentation
+- Complete mock implementations

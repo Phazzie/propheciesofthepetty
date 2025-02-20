@@ -2,11 +2,23 @@ import React from 'react';
 import type { Card, ReadingInterpretation } from '../../types';
 import { ReadingScores } from './ReadingScores';
 
+interface Position {
+  id: string;
+  name: string;
+  description: string;
+  className: string;
+}
+
 interface Props {
   spreadType: string;
   cards: (Card & { position: number; isReversed: boolean })[];
   interpretation?: ReadingInterpretation;
   isRevealed: boolean;
+  isCustomSpread?: boolean;
+  customPositions?: Array<{
+    name: string;
+    description: string;
+  }>;
 }
 
 const getPositionName = (spreadType: string, position: number): string => {

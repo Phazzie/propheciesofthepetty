@@ -4,7 +4,7 @@
  */
 
 import { generateTarotInterpretation } from '../gemini';
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { type CardInSpread, type SpreadPosition } from '../../types';
 
@@ -25,11 +25,40 @@ const mockCard: CardInSpread = {
   isReversed: false
 };
 
+// Mock Gemini AI response
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn(() => ({
     getGenerativeModel: () => ({
       generateContent: vi.fn().mockResolvedValue({
-        response: { text: () => 'Test interpretation' }
+        response: { 
+          text: () => JSON.stringify({
+            text: "Darling, let's discuss that Tower moment you're having. Though we've been here before (how fascinating), this time feels different. Perhaps it's because you're actually considering the possibility of change? *sigh* Well, as your cards-turned-therapist, I must point out that avoiding the inevitable rarely works out as planned. But don't worry, I'm here to watch this particular episode of 'Learning Life Lessons: The Remix' with you.",
+            scores: {
+              subtlety: 85,
+              relatability: 90,
+              wisdom: 85,
+              creative: 88,
+              humor: 87,
+              snark: 82,
+              culturalResonance: 80,
+              metaphorMastery: 85,
+              shadeIndex: {
+                plausibleDeniability: 85,
+                guiltTripIntensity: 82,
+                emotionalManipulation: 80,
+                backhandedCompliments: 88,
+                strategicVagueness: 85
+              }
+            },
+            stages: {
+              denial: "Oh sweetie, another Tower moment? How... unexpected.",
+              anger: "Though I hate to point this out (again)...",
+              bargaining: "Perhaps we could approach this differently this time?",
+              depression: "I know change hurts, but staying hurts more, darling.",
+              acceptance: "Well, at least you're consistent in your pattern recognition."
+            }
+          })
+        }
       })
     })
   }))
@@ -41,16 +70,40 @@ describe('Gemini AI Integration', () => {
   });
 
   it('generates tarot interpretation', async () => {
-    const cards = [
-      {
-        position: 'past',
-        name: 'The Fool',
-        description: 'New beginnings'
+    const cards = [{
+      ...mockCard,
+      position: {
+        name: "Past",
+        description: "What brought you here"
       }
-    ];
-
+    }];
+    
     const interpretation = await generateTarotInterpretation('past-present-future', cards);
-    expect(interpretation.response.text).toBe('Test interpretation');
+    
+    // Verify core content
+    expect(interpretation.text).toContain("Tower moment");
+    expect(interpretation.text).toContain("Darling");
+    
+    // Verify score requirements
+    expect(interpretation.scores.subtlety).toBeGreaterThanOrEqual(80);
+    expect(interpretation.scores.relatability).toBeGreaterThanOrEqual(80);
+    expect(interpretation.scores.wisdom).toBeGreaterThanOrEqual(80);
+    expect(interpretation.scores.creative).toBeGreaterThanOrEqual(80);
+    expect(interpretation.scores.humor).toBeGreaterThanOrEqual(80);
+    
+    // Verify shade index
+    Object.values(interpretation.scores.shadeIndex).forEach(score => {
+      expect(score).toBeGreaterThanOrEqual(75);
+    });
+
+    // Verify stages
+    expect(interpretation.stages).toEqual({
+      denial: expect.stringContaining("sweetie"),
+      anger: expect.stringContaining("point this out"),
+      bargaining: expect.stringContaining("approach this differently"),
+      depression: expect.stringContaining("change hurts"),
+      acceptance: expect.stringContaining("consistent")
+    });
   });
 
   it('handles API errors gracefully', async () => {
@@ -122,6 +175,24 @@ describe('Gemini AI Integration', () => {
                      interpretation.text.includes('judgment');
                      
     expect(hasL3Sass).toBe(true);
+  });
+
+  it('maintains tone consistency across readings', async () => {
+    const results = await Promise.all([
+      generateTarotInterpretation('past-present-future', [mockCard]),
+      generateTarotInterpretation('celtic-cross', [mockCard])
+    ]);
+
+    results.forEach(interpretation => {
+      // Verify consistent voice markers
+      expect(interpretation.text).toMatch(/(?:darling|sweetie|honey)/i);
+      expect(interpretation.text).toMatch(/(?:fascinating|interesting|curious)/i);
+      expect(interpretation.text).toMatch(/(?:perhaps|shall we|might we)/i);
+      
+      // Verify sass sophistication
+      expect(interpretation.scores.subtlety).toBeGreaterThanOrEqual(80);
+      expect(interpretation.scores.shadeIndex.strategicVagueness).toBeGreaterThanOrEqual(80);
+    });
   });
 });
 

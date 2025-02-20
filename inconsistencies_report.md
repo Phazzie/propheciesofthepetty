@@ -70,3 +70,58 @@ For each fix:
 
 ---
 *Note: Effort estimates assume single developer with codebase knowledge.*
+
+# Code Quality Issues
+
+## Architecture Violations
+- [ ] List components with circular dependencies
+- [ ] Identify impure functions in pure contexts
+- [ ] Note components violating single responsibility
+
+## Type Safety
+- [ ] Track unsafe type assertions
+- [ ] List missing interface implementations
+- [ ] Document implicit any usage
+
+## Performance Bottlenecks
+- [ ] Unnecessary re-renders
+- [ ] Unoptimized database queries
+- [ ] Heavy computations in render paths
+
+## Action Items
+Sorted by impact score (performance impact × frequency × fix complexity)
+
+## Test Architecture
+- [ ] Circular dependencies in test mocks
+  - Impact: Flaky tests, false positives
+  - Fix: Restructure test utilities, centralize mocks
+  
+- [ ] Inconsistent context setup
+  - Impact: Failing auth tests, unreliable results
+  - Fix: Create standard test wrapper with all providers
+
+## Component Architecture
+- [ ] Prop drilling in reading components
+  - Impact: Hard to test, brittle code
+  - Fix: Move to context or composition pattern
+
+- [ ] Missing error boundaries
+  - Impact: Cascading test failures
+  - Fix: Add proper error handling and recovery
+
+## Performance Issues
+- [ ] Unnecessary rerenders in SpreadSelector
+  - Impact: Poor performance in tests
+  - Fix: Implement proper memoization
+
+## Action Items (Sorted by Impact)
+1. Create centralized test context provider
+2. Refactor reading component hierarchy
+3. Add missing error boundaries
+4. Fix performance bottlenecks
+
+## Testing Gaps
+- Missing integration tests between:
+  - Auth system and reading history
+  - Card selection and interpretation
+  - Score calculation and display

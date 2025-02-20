@@ -1,24 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { User, Settings, CreditCard, History, Loader, AlertCircle } from 'lucide-react';
+import { User, Settings, CreditCard, History, Loader, AlertCircle, Moon, Sun, Bell, BellOff, Download, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useReadings } from '../../hooks/useDatabase';
+import { useTheme } from '../../contexts/ThemeContext';
+import { supabase } from '../../lib/supabase';
 import type { Reading } from '../../types';
+import type { ThemeType } from '../../contexts/ThemeContext';
+
+interface UserPreferences {
+  theme: ThemeType;
+  emailNotifications: boolean;
+}
 
 export const UserProfile: React.FC = () => {
   const { user } = useAuth();
   const { getUserReadings } = useReadings();
+  const { theme, setTheme } = useTheme();
   const [readings, setReadings] = useState<Reading[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    theme: 'light',
+    emailNotifications: true
+  });
+  const [showPreferences, setShowPreferences] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
       if (!user) return;
       try {
-        const userReadings = await getUserReadings(user.id);
+        const [userReadings, { data: prefsData }] = await Promise.all([
+          getUserReadings(user.id),
+          supabase.from('user_preferences').select('*').eq('user_id', user.id).single()
+        ]);
+        
         setReadings(userReadings);
-      } catch {
+        if (prefsData) {
+          setPreferences({
+            theme: prefsData.theme as ThemeType,
+            emailNotifications: prefsData.email_notifications
+          });
+        }
+      } catch (err) {
         setError('Failed to load user data');
+        console.error('Error loading user data:', err);
       } finally {
         setLoading(false);
       }
@@ -26,6 +51,70 @@ export const UserProfile: React.FC = () => {
 
     loadUserData();
   }, [user, getUserReadings]);
+
+  const updatePreferences = async (updates: Partial<UserPreferences>) => {
+    if (!user) return;
+    
+    try {
+      const updatedPrefs = { ...preferences, ...updates };
+      await supabase.from('user_preferences').upsert({
+        user_id: user.id,
+        theme: updatedPrefs.theme,
+        email_notifications: updatedPrefs.emailNotifications
+      });
+
+      if ('theme' in updates) {
+        await setTheme(updates.theme as ThemeType);
+      }
+      
+      setPreferences(updatedPrefs);
+    } catch (err) {
+      console.error('Failed to update preferences:', err);
+      setError('Failed to update preferences');
+    }
+  };
+
+  const handleDataExport = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: exportData } = await supabase
+        .from('readings')
+        .select('*')
+        .eq('user_id', user.id);
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tarot-readings-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export data:', err);
+      setError('Failed to export data');
+    }
+  };
+
+  const handleAccountDeletion = async () => {
+    if (!user || !window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
+    
+    try {
+      // Delete user data
+      await Promise.all([
+        supabase.from('readings').delete().eq('user_id', user.id),
+        supabase.from('user_preferences').delete().eq('user_id', user.id)
+      ]);
+      // Delete auth account
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
+      if (deleteError) throw deleteError;
+    } catch (err) {
+      console.error('Failed to delete account:', err);
+      setError('Failed to delete account');
+    }
+  };
 
   if (loading) {
     return (
@@ -85,11 +174,73 @@ export const UserProfile: React.FC = () => {
               <h3 className="font-semibold text-purple-900">Settings</h3>
               <Settings className="w-5 h-5 text-purple-600" />
             </div>
-            <button className="text-sm text-purple-600 hover:text-purple-700">
+            <button 
+              onClick={() => setShowPreferences(!showPreferences)}
+              className="text-sm text-purple-600 hover:text-purple-700"
+            >
               Manage Preferences
             </button>
           </div>
         </div>
+
+        {showPreferences && (
+          <div className="mt-6 border-t pt-6">
+            <h3 className="text-lg font-semibold text-purple-900 mb-4">Preferences</h3>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {preferences.theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                  <span>Theme</span>
+                </div>
+                <button
+                  onClick={() => updatePreferences({ theme: preferences.theme === 'dark' ? 'light' : 'dark' })}
+                  className="px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
+                >
+                  {preferences.theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {preferences.emailNotifications ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+                  <span>Email Notifications</span>
+                </div>
+                <button
+                  onClick={() => updatePreferences({ emailNotifications: !preferences.emailNotifications })}
+                  className="px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
+                >
+                  {preferences.emailNotifications ? 'Turn Off' : 'Turn On'}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Download className="w-5 h-5" />
+                  <span>Export Data</span>
+                </div>
+                <button
+                  onClick={handleDataExport}
+                  className="px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
+                >
+                  Download JSON
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                  <span className="text-red-600">Delete Account</span>
+                </div>
+                <button
+                  onClick={handleAccountDeletion}
+                  className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                >
+                  Delete Account
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow-lg p-6">

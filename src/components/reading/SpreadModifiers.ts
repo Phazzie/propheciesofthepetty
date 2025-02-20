@@ -13,34 +13,34 @@ interface SpreadModifier {
   thematicBonus?: number;
 }
 
-// All spreads use standardized 0-100 base scale
+// All metrics use standardized 0-100 base scale
 export const SPREAD_MODIFIERS: Record<SpreadType, SpreadModifier> = {
   classic: {
     baseMultiplier: 1.0,
     categoryMultipliers: {
-      humor: 1.4,      // Max 140
-      snark: 1.0,      // Max 100
-      culturalResonance: 0.6,   // Max 60
-      metaphorMastery: 0.6      // Max 60
+      humor: 1.0,
+      snark: 1.0,
+      culturalResonance: 1.0,
+      metaphorMastery: 1.0
     }
   },
-  celtic: {
+  'celtic-cross': {
     baseMultiplier: 1.2,
     categoryMultipliers: {
-      humor: 1.4,
-      snark: 1.0,
-      culturalResonance: 0.6,
-      metaphorMastery: 0.6
+      humor: 1.2,
+      snark: 1.1,
+      culturalResonance: 1.0,
+      metaphorMastery: 1.0
     },
-    thematicBonus: 10  // Celtic spread gets thematic bonus
+    thematicBonus: 10
   },
-  relationship: {
+  'three-card': {
     baseMultiplier: 1.1,
     categoryMultipliers: {
-      humor: 1.4,
-      snark: 1.0,
-      culturalResonance: 0.6,
-      metaphorMastery: 0.6
+      humor: 1.3,
+      snark: 1.2,
+      culturalResonance: 1.0,
+      metaphorMastery: 1.0
     }
   }
 };

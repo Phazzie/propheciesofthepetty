@@ -1,9 +1,11 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { logger } from '../lib/logger';
+import { logger } from '../../lib/logger';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
+  onReset?: () => void;
+  onBack?: () => void;
 }
 
 interface ErrorBoundaryState {
@@ -44,13 +46,32 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               Something went wrong
             </h1>
             <p className="text-gray-600 mb-6">
-              We apologize for the inconvenience. Please try refreshing the page.
-            </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                if (this.props.onReset) {
+                  this.props.onReset();
+                } else {
+                  window.location.reload();
+                }
+              }}
               className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
               aria-label="Refresh the page"
             >
+              Try Again
+            </button>
+            <button
+              onClick={() => {
+                if (this.props.onBack) {
+                  this.props.onBack();
+                } else {
+                  window.history.back();
+                }
+              }}
+              className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors ml-4"
+              aria-label="Go back"
+            >
+              Go Back
+            </button>
               Refresh Page
             </button>
           </div>
@@ -62,10 +83,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import { ErrorBoundary } from '../ErrorBoundary';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 
 // Test to ensure ErrorBoundary catches errors and displays fallback UI
 
@@ -82,5 +101,78 @@ describe('ErrorBoundary', () => {
     );
 
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+  });
+
+  it('calls onReset when Try Again button is clicked', () => {
+    const onReset = vi.fn();
+    const ProblemChild = () => {
+      throw new Error('Simulated error');
+    };
+
+    render(
+      <ErrorBoundary onReset={onReset}>
+        <ProblemChild />
+      </ErrorBoundary>
+    );
+
+    fireEvent.click(screen.getByText('Try Again'));
+    expect(onReset).toHaveBeenCalled();
+  });
+
+  it('calls onBack when Go Back button is clicked', () => {
+    const onBack = vi.fn();
+    const ProblemChild = () => {
+      throw new Error('Simulated error');
+    };
+
+    render(
+      <ErrorBoundary onBack={onBack}>
+        <ProblemChild />
+      </ErrorBoundary>
+    );
+
+    fireEvent.click(screen.getByText('Go Back'));
+    expect(onBack).toHaveBeenCalled();
+  });
+
+  it('reloads the page when Try Again button is clicked and no onReset is provided', () => {
+    const originalLocation = window.location;
+    window.location = {} as Location;
+    window.location = { ...originalLocation, reload: vi.fn() };
+
+    const ProblemChild = () => {
+      throw new Error('Simulated error');
+    };
+
+    render(
+      <ErrorBoundary>
+        <ProblemChild />
+      </ErrorBoundary>
+    );
+
+    fireEvent.click(screen.getByText('Try Again'));
+    expect(window.location.reload).toHaveBeenCalled();
+
+    window.location = originalLocation;
+  });
+
+  it('goes back in history when Go Back button is clicked and no onBack is provided', () => {
+    const originalHistory = window.history;
+    window.history.back = vi.fn();
+
+    const ProblemChild = () => {
+      throw new Error('Simulated error');
+    };
+
+    render(
+      <ErrorBoundary>
+        <ProblemChild />
+      </ErrorBoundary>
+    );
+
+    fireEvent.click(screen.getByText('Go Back'));
+    expect(window.history.back).toHaveBeenCalled();
+
+    window.history = originalHistory;
   });
 });

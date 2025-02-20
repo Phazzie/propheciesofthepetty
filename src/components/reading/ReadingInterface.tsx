@@ -22,7 +22,6 @@ import { ReadingLayout } from './ReadingLayout';
 import { CardDeck } from './CardDeck';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { AlertCircle } from 'lucide-react';
-import { useCards } from '../../hooks/useDatabase';
 import { generateTarotInterpretation } from '../../lib/gemini';
 import type { Card } from '../../types';
 
@@ -43,7 +42,6 @@ export default function ReadingInterface({ onComplete }: Props) {
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
   const [interpretation, setInterpretation] = useState<any>(null);
   const [userInput, setUserInput] = useState('');
-  const { getCards } = useCards();
 
   const handleCardSelect = (card: Card, isReversed: boolean) => {
     if (!selectedSpread) return;
@@ -72,7 +70,10 @@ export default function ReadingInterface({ onComplete }: Props) {
       const readingInterpretation = await generateTarotInterpretation(
         spread.id,
         selectedCards.map(card => ({
-          position: spread.positions[card.position].name,
+          id: card.id,
+          imageUrl: card.imageUrl,
+          type: card.type,
+          position: spread.positions[card.position],
           name: card.name,
           description: card.description,
           isReversed: card.isReversed
@@ -112,17 +113,19 @@ export default function ReadingInterface({ onComplete }: Props) {
         onSelect={handleSpreadSelect}
       />
 
-      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-4">
-          Describe Your Problem or Question
-        </h3>
-        <textarea
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          placeholder="Enter your problem or question here..."
-        />
-      </div>
+      {selectedSpread && (
+        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-4">
+            Describe Your Problem or Question
+          </h3>
+          <textarea
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="Enter your problem or question here..."
+          />
+        </div>
+      )}
       
       {selectedSpread && !interpretation && (
         <div className="space-y-6">
@@ -155,6 +158,8 @@ export default function ReadingInterface({ onComplete }: Props) {
           cards={cards}
           interpretation={interpretation}
           isRevealed={!!interpretation}
+          isCustomSpread={selectedSpread.isCustom}
+          customPositions={selectedSpread.isCustom ? selectedSpread.positions : undefined}
         />
       )}
     </div>

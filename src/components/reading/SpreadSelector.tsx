@@ -1,8 +1,9 @@
 /** @jsxImportSource react */
-import { type FC } from 'react';
-import { Layout, CopyX, Star, Info, MessageCircle, ThumbsUp, XSquare, Coffee } from 'lucide-react';
+import { type FC, useState } from 'react';
+import { Layout, CopyX, Star, Info, MessageCircle, ThumbsUp, XSquare, Coffee, Plus } from 'lucide-react';
+import { CustomSpreadBuilder } from './CustomSpreadBuilder';
 
-export type SpreadType = 'past-present-future' | 'celtic-cross' | 'im-fine' | 'just-saying' | 'whatever' | 'no-offense';
+export type SpreadType = 'classic' | 'celtic-cross' | 'star-guide' | 'im-fine' | 'just-saying' | 'whatever' | 'no-offense' | `custom-${number}`;
 
 export interface SpreadConfig {
   id: SpreadType;
@@ -14,21 +15,23 @@ export interface SpreadConfig {
     name: string;
     description: string;
   }>;
+  isCustom?: boolean;
 }
 
 const spreadIcons = {
   threeCard: Layout,
   celticCross: CopyX,
-  starSpread: Star,
+  starGuide: Star,
   imFine: MessageCircle,
   justSaying: ThumbsUp,
   whatever: XSquare,
-  noOffense: Coffee
+  noOffense: Coffee,
+  custom: Plus
 } as const;
 
 const SPREADS: SpreadConfig[] = [
   {
-    id: 'past-present-future',
+    id: 'classic',
     name: 'Past, Present, Future',
     description: "A simple spread exploring your journey through time with the signature passive-aggressive twist.",
     cardCount: 3,
@@ -42,36 +45,34 @@ const SPREADS: SpreadConfig[] = [
   {
     id: 'celtic-cross',
     name: 'Celtic Cross',
-    description: "A comprehensive look at your situation from all angles, because one perspective isn't enough to judge you.",
+    description: "A comprehensive spread for deep insights and cosmic judgment, because one perspective isn't enough to judge you.",
     cardCount: 10,
     icon: 'celticCross',
     positions: [
       { name: 'Present', description: "The current situation (that you got yourself into)" },
       { name: 'Challenge', description: "What's blocking you (besides yourself)" },
-      { name: 'Past', description: "Recent events (that you should have handled better)" },
-      { name: 'Future', description: "What's coming (whether you're ready or not)" },
-      { name: 'Above', description: "Your aspirations (however unrealistic)" },
-      { name: 'Below', description: "Your foundation (or lack thereof)" },
-      { name: 'Advice', description: "What you should do (but probably won't)" },
-      { name: 'External', description: "Outside influences (that you'll blame anyway)" },
+      { name: 'Foundation', description: "Your foundation (or lack thereof)" },
+      { name: 'Recent Past', description: "What brought you here (like it or not)" },
+      { name: 'Higher Self', description: "Your aspirations (however unrealistic)" },
+      { name: 'Near Future', description: "What's coming (whether you're ready or not)" },
+      { name: 'Current Attitude', description: "How you're handling this (debatable)" },
+      { name: 'External Factor', description: "Outside influences (that you'll blame anyway)" },
       { name: 'Hopes/Fears', description: "Your anxieties (totally justified this time)" },
-      { name: 'Outcome', description: "The final result (no pressure)" }
+      { name: 'Final Outcome', description: "Where this leads (no pressure)" }
     ]
   },
   {
-    id: 'star-spread',
-    name: 'Star Spread',
-    description: "A star-shaped spread for insight and guidance, because you need all the help you can get.",
-    cardCount: 7,
-    icon: 'starSpread',
+    id: 'star-guide',
+    name: "Star Guide",
+    description: "A celestial spread for when you need guidance with an extra side of sass.",
+    cardCount: 5,
+    icon: 'starGuide',
     positions: [
-      { name: 'Center', description: "Your core issue (the real one)" },
-      { name: 'Above', description: "Higher guidance (if you'll listen)" },
-      { name: 'Below', description: "Hidden factors (that you're ignoring)" },
-      { name: 'Left', description: "Past influence (your baggage)" },
-      { name: 'Right', description: "Future potential (don't mess it up)" },
-      { name: 'Rising', description: "Growing influence (incoming drama)" },
-      { name: 'Falling', description: "Fading influence (finally letting go)" }
+      { name: 'Core Issue', description: "What's actually bothering you (not what you say is)" },
+      { name: 'Hidden Factor', description: "The thing you're conveniently ignoring" },
+      { name: 'Divine Guidance', description: "The obvious advice you'll probably ignore" },
+      { name: 'Challenge', description: "Your biggest obstacle (spoiler: it's you)" },
+      { name: 'Potential', description: "Where this could go (if you actually listen)" }
     ]
   },
   {
@@ -136,20 +137,40 @@ interface Props {
 }
 
 export const SpreadSelector: FC<Props> = ({ onSelect, selectedSpread }) => {
+  const [showCustomBuilder, setShowCustomBuilder] = useState(false);
+  const [customSpreads, setCustomSpreads] = useState<SpreadConfig[]>([]);
+
+  const handleCustomSpreadSave = (newSpread: SpreadConfig) => {
+    setCustomSpreads(prev => [...prev, newSpread]);
+    setShowCustomBuilder(false);
+    onSelect(newSpread);
+  };
+
+  if (showCustomBuilder) {
+    return (
+      <CustomSpreadBuilder
+        onSave={handleCustomSpreadSave}
+        onCancel={() => setShowCustomBuilder(false)}
+      />
+    );
+  }
+
+  const allSpreads = [...SPREADS, ...customSpreads];
+
   return (
     <div className="space-y-8">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-purple-900 mb-2">
-          Choose Your Spread
+          Now, Choose Your Spread
         </h2>
         <p className="text-gray-600">
-          Select a spread type to begin your totally unbiased reading
+          Pick a spread that matches your energy (we can feel it from here)
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {SPREADS.map((spread) => {
-          const Icon = spreadIcons[spread.icon];
+        {allSpreads.map((spread) => {
+          const Icon = spread.isCustom ? spreadIcons.custom : spreadIcons[spread.icon];
           const isSelected = selectedSpread?.id === spread.id;
           
           return (
@@ -163,6 +184,7 @@ export const SpreadSelector: FC<Props> = ({ onSelect, selectedSpread }) => {
                     : 'bg-white hover:bg-purple-50 text-gray-800 shadow-md hover:scale-102'
                   }
                 `}
+                aria-selected={isSelected}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={isSelected ? 'text-white' : 'text-purple-600'}>
@@ -175,7 +197,7 @@ export const SpreadSelector: FC<Props> = ({ onSelect, selectedSpread }) => {
                 <h3 className="text-lg font-semibold mb-2">{spread.name}</h3>
                 <p className={`text-sm ${
                   isSelected ? 'text-purple-100' : 'text-gray-600'
-                }`}>
+                }`} data-testid="spread-description">
                   {spread.description}
                 </p>
               </button>
@@ -199,6 +221,15 @@ export const SpreadSelector: FC<Props> = ({ onSelect, selectedSpread }) => {
             </div>
           );
         })}
+
+        {/* Custom Spread Button */}
+        <button
+          onClick={() => setShowCustomBuilder(true)}
+          className="w-full p-6 rounded-lg border-2 border-dashed border-purple-300 hover:border-purple-500 hover:bg-purple-50 transition-colors flex flex-col items-center justify-center text-purple-600 hover:text-purple-700"
+        >
+          <Plus className="w-8 h-8 mb-2" />
+          <span className="text-lg font-medium">Create Custom Spread</span>
+        </button>
       </div>
     </div>
   );

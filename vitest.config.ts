@@ -17,7 +17,21 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'istanbul',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
+      exclude: [
+        '**/node_modules/**',
+        '**/__tests__/**',
+        '**/types/**',
+        '**/vite-env.d.ts',
+        '**/*.config.{js,ts}',
+        '**/coverage/**'
+      ],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 70,
+        statements: 80
+      }
     },
     deps: {
       optimizer: {
@@ -26,13 +40,20 @@ export default defineConfig({
         }
       }
     },
-    pool: 'forks', // Use process pool instead of threads
+    pool: 'forks',
     poolOptions: {
       threads: {
-        singleThread: true // Run in single thread to reduce memory usage
+        minThreads: 2,
+        maxThreads: 4,
+        singleThread: false
       }
     },
-    testTimeout: 10000, // Increase timeout to 10s
-    maxConcurrency: 1 // Run tests serially
-  },
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    maxConcurrency: 4,
+    reporters: ['verbose', 'junit'],
+    outputFile: {
+      junit: './coverage/junit.xml'
+    }
+  }
 });

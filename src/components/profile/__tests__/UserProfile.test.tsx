@@ -3,13 +3,13 @@
  * @module tests/UserProfile
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { UserProfile } from '../UserProfile';
-import { AuthProvider } from '../../../context/AuthContext';
-import { vi } from 'vitest';
-import { describe, it, expect } from 'vitest';
 import { AuthContext } from '../../../context/AuthContext';
 import * as useDatabase from '../../../hooks/useDatabase';
+import { ThemeContext } from '../../../contexts/ThemeContext';
+import { supabase } from '../../../lib/supabase';
 import '@testing-library/jest-dom';
 
 // Mock Lucide icons
@@ -19,42 +19,44 @@ vi.mock('lucide-react', () => ({
   CreditCard: () => <div data-testid="credit-card-icon" />,
   History: () => <div data-testid="history-icon" />,
   Loader: () => <div data-testid="loader-icon" />,
-  AlertCircle: () => <div data-testid="alert-icon" />
+  AlertCircle: () => <div data-testid="alert-icon" />,
+  Moon: () => <div data-testid="moon-icon" />,
+  Sun: () => <div data-testid="sun-icon" />,
+  Bell: () => <div data-testid="bell-icon" />,
+  BellOff: () => <div data-testid="bell-off-icon" />,
+  Download: () => <div data-testid="download-icon" />,
+  Trash2: () => <div data-testid="trash-icon" />
 }));
 
-// Mock useReadings hook
-vi.mock('../../../hooks/useDatabase', () => ({
-  useReadings: vi.fn(() => ({
-    getUserReadings: vi.fn().mockResolvedValue([
-      {
-        id: '1',
-        spreadType: 'Past, Present, Future',
-        interpretation: 'Test reading',
-        createdAt: new Date().toISOString(),
-        cards: []
+vi.mock('../../../lib/supabase', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({
+            data: {
+              theme: 'light',
+              email_notifications: true
+            }
+          })
+        }))
+      })),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+      delete: vi.fn().mockResolvedValue({ error: null })
+    })),
+    auth: {
+      admin: {
+        deleteUser: vi.fn().mockResolvedValue({ error: null })
       }
-    ]),
-    loading: false,
-    error: null
-  }))
-}));
-
-vi.mock('../../../context/AuthContext', () => ({
-  useAuth: () => ({
-    user: {
-      id: 'test-user',
-      email: 'test@example.com',
-      subscriptionType: 'free'
     }
-  }),
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
+  }
 }));
 
 describe('UserProfile', () => {
   const mockUser = {
-    id: '123',
+    id: 'test-user',
     email: 'test@example.com',
-    subscriptionType: 'Premium'
+    subscriptionType: 'free'
   };
 
   const mockReadings = [
@@ -77,15 +79,23 @@ describe('UserProfile', () => {
     });
   });
 
-  const renderComponent = (authContextValue = {}) => {
+  const renderComponent = (authContextValue = {}, themeContextValue = {}) => {
     const defaultAuthContext = {
       user: mockUser,
       ...authContextValue
     };
 
+    const defaultThemeContext = {
+      theme: 'light',
+      setTheme: vi.fn(),
+      ...themeContextValue
+    };
+
     return render(
       <AuthContext.Provider value={defaultAuthContext}>
-        <UserProfile />
+        <ThemeContext.Provider value={defaultThemeContext}>
+          <UserProfile />
+        </ThemeContext.Provider>
       </AuthContext.Provider>
     );
   };
@@ -137,5 +147,74 @@ describe('UserProfile', () => {
     vi.mocked(useDatabase.useReadings).mockReturnValue({ getUserReadings });
     renderComponent({ user: null });
     expect(getUserReadings).not.toHaveBeenCalled();
+  });
+
+  it('loads and displays user preferences', async () => {
+    renderComponent();
+    
+    await waitFor(() => {
+      expect(screen.getByText('Manage Preferences')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Manage Preferences'));
+
+    expect(screen.getByText('Switch to Dark')).toBeInTheDocument();
+    expect(screen.getByText('Turn Off')).toBeInTheDocument();
+  });
+
+  it('toggles theme preference', async () => {
+    const setTheme = vi.fn();
+    renderComponent({}, { setTheme });
+
+    await waitFor(() => {
+      expect(screen.getByText('Manage Preferences')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Manage Preferences'));
+    fireEvent.click(screen.getByText('Switch to Dark'));
+
+    expect(setTheme).toHaveBeenCalledWith('dark');
+    expect(supabase.from).toHaveBeenCalledWith('user_preferences');
+  });
+
+  it('handles data export', async () => {
+    const mockCreateElement = vi.spyOn(document, 'createElement');
+    const mockClick = vi.fn();
+    mockCreateElement.mockReturnValue({ 
+      setAttribute: vi.fn(),
+      click: mockClick,
+      style: {},
+      href: '',
+      download: ''
+    } as any);
+
+    renderComponent();
+    
+    await waitFor(() => {
+      expect(screen.getByText('Manage Preferences')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Manage Preferences'));
+    fireEvent.click(screen.getByText('Download JSON'));
+
+    expect(mockClick).toHaveBeenCalled();
+  });
+
+  it('confirms before account deletion', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    confirmSpy.mockReturnValue(true);
+
+    renderComponent();
+    
+    await waitFor(() => {
+      expect(screen.getByText('Manage Preferences')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Manage Preferences'));
+    fireEvent.click(screen.getByText('Delete Account'));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(supabase.from).toHaveBeenCalledWith('readings');
+    expect(supabase.auth.admin.deleteUser).toHaveBeenCalledWith(mockUser.id);
   });
 });

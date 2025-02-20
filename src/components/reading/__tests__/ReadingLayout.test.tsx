@@ -120,3 +120,126 @@ describe('ReadingLayout', () => {
     expect(container.firstChild).toHaveClass('grid-cols-3');
   });
 });
+
+describe('ReadingLayout with Custom Spreads', () => {
+  it('renders custom spread with correct positions', () => {
+    const customPositions = [
+      { name: 'Custom 1', description: 'First custom position' },
+      { name: 'Custom 2', description: 'Second custom position' },
+      { name: 'Custom 3', description: 'Third custom position' }
+    ];
+
+    const cards = Array(3).fill(mockCard).map((card, i) => ({
+      ...card,
+      position: i
+    }));
+
+    renderWithTheme({
+      spreadType: 'custom-123',
+      cards,
+      isRevealed: true,
+      isCustomSpread: true,
+      customPositions
+    });
+
+    // Verify all custom position names and descriptions are displayed
+    customPositions.forEach(pos => {
+      expect(screen.getByText(pos.name)).toBeInTheDocument();
+      expect(screen.getByText(pos.description)).toBeInTheDocument();
+    });
+  });
+
+  it('applies correct grid layout for different custom spread sizes', () => {
+    const twoPositions = [
+      { name: 'Pos 1', description: 'Desc 1' },
+      { name: 'Pos 2', description: 'Desc 2' }
+    ];
+
+    const fourPositions = Array(4).fill(null).map((_, i) => ({
+      name: `Pos ${i + 1}`,
+      description: `Desc ${i + 1}`
+    }));
+
+    const sixPositions = Array(6).fill(null).map((_, i) => ({
+      name: `Pos ${i + 1}`,
+      description: `Desc ${i + 1}`
+    }));
+
+    // Test 2-position layout
+    const { rerender, container } = renderWithTheme({
+      spreadType: 'custom-123',
+      cards: Array(2).fill(mockCard),
+      isRevealed: true,
+      isCustomSpread: true,
+      customPositions: twoPositions
+    });
+
+    expect(container.firstChild).toHaveClass('grid-cols-3');
+
+    // Test 4-position layout
+    rerender(
+      <ThemeProvider>
+        <ReadingLayout
+          spreadType="custom-123"
+          cards={Array(4).fill(mockCard)}
+          isRevealed={true}
+          isCustomSpread={true}
+          customPositions={fourPositions}
+        />
+      </ThemeProvider>
+    );
+
+    expect(container.firstChild).toHaveClass('grid-cols-2');
+
+    // Test 6-position layout
+    rerender(
+      <ThemeProvider>
+        <ReadingLayout
+          spreadType="custom-123"
+          cards={Array(6).fill(mockCard)}
+          isRevealed={true}
+          isCustomSpread={true}
+          customPositions={sixPositions}
+        />
+      </ThemeProvider>
+    );
+
+    expect(container.firstChild).toHaveClass('grid-cols-3');
+  });
+
+  it('shows empty positions for incomplete custom spread', () => {
+    const customPositions = Array(4).fill(null).map((_, i) => ({
+      name: `Position ${i + 1}`,
+      description: `Description ${i + 1}`
+    }));
+
+    renderWithTheme({
+      spreadType: 'custom-123',
+      cards: [mockCard], // Only one card for a 4-position spread
+      isRevealed: true,
+      isCustomSpread: true,
+      customPositions
+    });
+
+    expect(screen.getAllByRole('img', { name: /empty position/i })).toHaveLength(3);
+  });
+
+  it('maintains card reversals in custom spreads', () => {
+    const customPositions = [
+      { name: 'Custom 1', description: 'First position' },
+      { name: 'Custom 2', description: 'Second position' }
+    ];
+
+    const reversedCard = { ...mockCard, isReversed: true };
+
+    renderWithTheme({
+      spreadType: 'custom-123',
+      cards: [reversedCard],
+      isRevealed: true,
+      isCustomSpread: true,
+      customPositions
+    });
+
+    expect(screen.getByTestId('reversed-card')).toHaveClass('rotate-180');
+  });
+});

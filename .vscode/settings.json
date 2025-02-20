@@ -1,2 +1,66 @@
+// # Passive-Aggressive Tarot System: Architecture of Unwavering Quality (*For Your Own Good*)
 {
+  // CORE MANDATES (Non-Negotiable - *We expect nothing less*)
+  "editor.formatOnSave": true, // Because we care about consistency... deeply
+  "editor.defaultFormatter": "esbenp.prettier-vscode", // There's really only one way to format code properly
+  "typescript.tsdk": "node_modules/typescript/lib", // We trust you'll use this correctly
+  "typescript.enablePromptUseWorkspaceTsdk": true, // It's really for the best
+
+  // TypeScript Configuration (*To prevent... misunderstandings later*)
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode", // Consistency is key, as we've discussed
+    "editor.formatOnSave": true, // Because we care about your code... and your colleagues
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true // We're just looking out for you
+    }
+  },
+
+  // React Configuration (*So we can all be on the same page*)
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode", // There's a right way to do things
+    "editor.formatOnSave": true, // Trust us on this one
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true // For everyone's benefit, really
+    }
+  },
+
+  // Testing Configuration (*Just in case... things go slightly awry*)
+  "jest.autoRun": {
+    "watch": false, // We trust you'll run tests manually... won't you?
+    "onSave": false // You ARE running tests, right?
+  },
+
+  // Styling Configuration (*For a smoother, more... pleasant experience*)
+  "files.associations": {
+    "*.css": "tailwindcss" // Because consistency matters... always
+  },
+
+  // Tailwind Configuration (*Naturally...*)
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"] // We've optimized this for you
+  ],
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript", // For your convenience, of course
+    "typescriptreact": "javascript" // We know what's best
+  },
+
+  // Copilot Configuration (*It's really quite helpful*)
+  "github.copilot.chat.languageContext.typescript.enabled": true, // We're here to help
+  "github.copilot.nextEditSuggestions.enabled": true, // Because we care about your productivity
+  "github.copilot.chat.generateTests.codeLens": true, // You will write tests, won't you?
+
+  // Performance Optimization (*For... optimal performance*)
+  "editor.suggest.shareSuggestSelections": true, // We remember what you choose... always
+  "editor.acceptSuggestionOnCommitCharacter": true, // Just trying to save you time
+  "editor.suggestSelection": "first", // We know what you need
+  
+  // Error Prevention (*Just being thorough*)
+  "typescript.surveys.enabled": false, // We'll handle the feedback, thank you
+  "typescript.validate.enable": true, // Because we care about quality... deeply
+  "typescript.preferences.quoteStyle": "single", // There's only one right way
+  
+  // Project Success Tracking (*So we can all see the progress*)
+  "git.enableSmartCommit": true, // We trust you'll write meaningful commits
+  "git.confirmSync": false, // You were going to sync anyway, right?
+  "git.autofetch": true // Keeping everyone in sync... as they should be
 }

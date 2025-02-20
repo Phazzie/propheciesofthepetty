@@ -5,46 +5,64 @@ interface Props {
   size?: number;
   message?: string;
   center?: boolean;
+  context?: 'reading' | 'auth' | 'profile' | 'general';
 }
 
-const shadeMessages = [
-  "Still waiting... like that text you never replied to",
-  "Loading at the speed of your last life-changing decision",
-  "Taking a moment to process, much like your career trajectory",
-  "Oh, you're still here? How wonderfully patient of you",
-  "Manifesting your results with the same energy as your gym routine",
-  "Processing with the depth of your dating history",
-  "Loading... almost as long as your self-improvement phase",
-  "Taking its time, like your journey to emotional maturity",
-  "This might take a while, but not as long as your 'temporary' phase",
-  "Just breathe... like you do when someone mentions their achievements"
-];
+const contextMessages = {
+  reading: [
+    "Consulting the cosmic sass database...",
+    "Channeling your inner drama...",
+    "Brewing some celestial tea...",
+    "Gathering the receipts from beyond...",
+    "Calculating your shade level...",
+  ],
+  auth: [
+    "Validating your cosmic credentials...",
+    "Checking your astrological clearance...",
+    "Consulting the stars about you...",
+    "Verifying your karmic balance...",
+  ],
+  profile: [
+    "Loading your spiritual receipts...",
+    "Gathering your cosmic journey data...",
+    "Calculating your shade progression...",
+    "Analyzing your celestial drama metrics...",
+  ],
+  general: [
+    "Still waiting... like that text you never replied to",
+    "Loading at the speed of your last life-changing decision",
+    "Taking a moment to process, much like your career trajectory",
+    "Oh, you're still here? How wonderfully patient of you",
+  ]
+};
 
 export const LoadingSpinner: React.FC<Props> = ({ 
   size = 24, 
   message, 
-  center = true 
+  center = true,
+  context = 'general'
 }) => {
   const [messageIndex, setMessageIndex] = useState(0);
-  const [currentMessage, setCurrentMessage] = useState(message || shadeMessages[0]);
+  const [currentMessage, setCurrentMessage] = useState(message || contextMessages[context][0]);
 
   useEffect(() => {
     if (!message) {
+      const messages = contextMessages[context];
       setMessageIndex(0);
       
       const interval = setInterval(() => {
         setMessageIndex(prevIndex => {
-          const nextIndex = (prevIndex + 1) % shadeMessages.length;
-          setCurrentMessage(shadeMessages[nextIndex]);
+          const nextIndex = (prevIndex + 1) % messages.length;
+          setCurrentMessage(messages[nextIndex]);
           return nextIndex;
         });
-      }, 2000);
+      }, 3000);
 
       return () => clearInterval(interval);
     } else {
       setCurrentMessage(message);
     }
-  }, [message]);
+  }, [message, context]);
 
   return (
     <div 
@@ -52,6 +70,7 @@ export const LoadingSpinner: React.FC<Props> = ({
       role="status"
       aria-live="polite"
       data-testid="loading-spinner"
+      data-context={context}
     >
       <Loader 
         className="animate-spin text-purple-600" 

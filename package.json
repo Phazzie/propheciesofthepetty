@@ -7,40 +7,58 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint .",
-    "test": "node --max-old-space-size=4096 --gc-interval=100 node_modules/vitest/vitest.mjs run",
-    "test:watch": "node --max-old-space-size-size=4096 --gc-interval=100 node_modules/vitest/vitest.mjs",
-    "test:coverage": "node --max-old-space-size=4096 --gc-interval=100 node_modules/vitest/vitest.mjs run --coverage",
-    "type-check": "tsc --noEmit"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "type-check": "tsc --noEmit",
+    "prepare": "husky install",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\"",
+    "lint-staged": "lint-staged",
+    "validate": "npm-run-all --parallel type-check lint test",
+    "validate-staged": "lint-staged && npm run type-check"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.39.7",
+    "env-validator": "^1.0.0",
     "framer-motion": "^12.4.3",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.9.1",
+    "@eslint/js": "^8.56.0",
+    "@playwright/test": "^1.50.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.5.2",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/coverage-istanbul": "^1.6.1",
     "autoprefixer": "^10.4.18",
-    "eslint": "^9.9.1",
+    "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.11",
     "globals": "^15.9.0",
+    "husky": "^9.0.11",
     "jsdom": "^24.1.3",
+    "lint-staged": "^15.2.2",
     "msw": "^2.7.0",
+    "npm-run-all": "^4.1.5",
     "postcss": "^8.4.35",
+    "prettier": "^3.2.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
-    "typescript-eslint": "^8.3.0",
     "vite": "^5.4.2",
     "vitest": "^1.6.1"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

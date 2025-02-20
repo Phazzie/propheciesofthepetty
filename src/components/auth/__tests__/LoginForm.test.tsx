@@ -4,30 +4,12 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LoginForm } from '../LoginForm';
 import { AuthContext } from '../../../context/AuthContext';
-
-// Mock the auth context
-const defaultAuthContext = {
-  user: null,
-  session: null,
-  signIn: vi.fn(),
-  signOut: vi.fn(),
-  signUp: vi.fn(),
-  requestPasswordReset: vi.fn(),
-  loading: false,
-  error: null
-};
-
-const renderComponent = () => {
-  return render(
-    <AuthContext.Provider value={defaultAuthContext}>
-      <LoginForm />
-    </AuthContext.Provider>
-  );
-};
+import { logger } from '../../../lib/logger';
+import '@testing-library/jest-dom';
 
 // Mock child components
 vi.mock('../RegisterForm', () => ({
@@ -66,73 +48,125 @@ vi.mock('../../../lib/logger', () => ({
 }));
 
 describe('LoginForm', () => {
+  const mockSignIn = vi.fn();
+  
+  const renderComponent = (authContextValue = {}) => {
+    const defaultAuthContext = {
+      user: null,
+      session: null,
+      signIn: mockSignIn,
+      signOut: vi.fn(),
+      signUp: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      loading: false,
+      error: null,
+      ...authContextValue
+    };
+
+    return render(
+      <AuthContext.Provider value={defaultAuthContext}>
+        <LoginForm />
+      </AuthContext.Provider>
+    );
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders login form', () => {
     renderComponent();
+    
     expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
   it('toggles password visibility', () => {
     renderComponent();
-    const passwordInput = screen.getByLabelText(/^password$/i);
-    const toggleButton = screen.getByRole('button', { name: /toggle password/i });
-
+    
+    const passwordInput = screen.getByLabelText(/password/i);
+    const toggleButton = screen.getByRole('button', { name: /toggle password visibility/i });
+    
     expect(passwordInput).toHaveAttribute('type', 'password');
     fireEvent.click(toggleButton);
     expect(passwordInput).toHaveAttribute('type', 'text');
-  });
-
-  it('switches to register form', () => {
-    const mockSetAuthMode = vi.fn();
-    render(
-      <AuthContext.Provider value={defaultAuthContext}>
-        <LoginForm onSwitchMode={mockSetAuthMode} />
-      </AuthContext.Provider>
-    );
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
-    expect(mockSetAuthMode).toHaveBeenCalledWith('register');
+    fireEvent.click(toggleButton);
+    expect(passwordInput).toHaveAttribute('type', 'password');
   });
 
   it('validates email format', async () => {
     renderComponent();
+    
     const emailInput = screen.getByLabelText(/email/i);
     const submitButton = screen.getByRole('button', { name: /sign in/i });
-
+    
     fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
     fireEvent.click(submitButton);
-
-    expect(await screen.findByText(/invalid email format/i)).toBeInTheDocument();
+    
+    await waitFor(() => {
+      expect(screen.getByText(/invalid email format/i)).toBeInTheDocument();
+    });
+    expect(mockSignIn).not.toHaveBeenCalled();
   });
 
   it('validates password length', async () => {
     renderComponent();
-    const passwordInput = screen.getByLabelText(/^password$/i);
+    
+    const passwordInput = screen.getByLabelText(/password/i);
     const submitButton = screen.getByRole('button', { name: /sign in/i });
-
+    
     fireEvent.change(passwordInput, { target: { value: '123' } });
     fireEvent.click(submitButton);
-
-    expect(await screen.findByText(/password must be at least/i)).toBeInTheDocument();
+    
+    await waitFor(() => {
+      expect(screen.getByText(/password must be at least/i)).toBeInTheDocument();
+    });
+    expect(mockSignIn).not.toHaveBeenCalled();
   });
 
   it('submits form with valid data', async () => {
     renderComponent();
+    
     const emailInput = screen.getByLabelText(/email/i);
-    const passwordInput = screen.getByLabelText(/^password$/i);
+    const passwordInput = screen.getByLabelText(/password/i);
     const submitButton = screen.getByRole('button', { name: /sign in/i });
-
+    
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'validPass123' } });
     fireEvent.click(submitButton);
-
-    expect(defaultAuthContext.signIn).toHaveBeenCalledWith({
-      email: 'test@example.com',
-      password: 'validPass123'
+    
+    await waitFor(() => {
+      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'validPass123');
     });
+  });
+
+  it('shows loading state', () => {
+    renderComponent({ loading: true });
+    
+    expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
+    expect(screen.getByText(/signing in/i)).toBeInTheDocument();
+  });
+
+  it('displays error message', () => {
+    renderComponent({ error: 'Invalid credentials' });
+    
+    expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
+    expect(screen.getByTestId('alert-icon')).toBeInTheDocument();
+  });
+
+  it('switches to forgot password form', () => {
+    renderComponent();
+    
+    fireEvent.click(screen.getByText(/forgot password/i));
+    expect(screen.getByTestId('forgot-password-form')).toBeInTheDocument();
+  });
+
+  it('switches to register form', () => {
+    renderComponent();
+    
+    fireEvent.click(screen.getByText(/create account/i));
+    expect(screen.getByTestId('register-form')).toBeInTheDocument();
   });
 });

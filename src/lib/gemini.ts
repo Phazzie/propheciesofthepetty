@@ -4,7 +4,10 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { ReadingInterpretation } from '../types';
+import type { ReadingInterpretation, CardInSpread, Reading } from '../types';
+import { validateResponse, PASSING_THRESHOLD } from './ShadeLevels';
+import { analyzeReadingPatterns } from './PatternAnalyzer';
+import { useReadings } from '../hooks/useDatabase';
 
 const CONSTANTS = {
   MAX_INTERPRETATION_LENGTH: 1000,
@@ -96,79 +99,97 @@ Remember: Your genius isn't just in what you say, but in crafting observations s
 
 export async function generateTarotInterpretation(
   spreadType: string,
-  cards: CardInSpread[]
+  cards: CardInSpread[],
+  userId?: string
 ): Promise<ReadingInterpretation> {
   try {
-    // Get the spread's theme for context
-    const spread = SPREADS.find(s => s.id === spreadType);
-    const spreadTheme = spread?.description || "";
+    // Get user's reading history if available
+    let patternContext = '';
+    if (userId) {
+      const { getUserReadings } = useReadings();
+      const previousReadings = await getUserReadings(userId);
+      if (previousReadings.length > 0) {
+        const patterns = analyzeReadingPatterns(previousReadings);
+        patternContext = `
+READING HISTORY CONTEXT:
+- Repeated themes: ${patterns.repeatedThemes.join(', ')}
+- Growth level: ${patterns.sophisticationGrowth}/100
+- Consistency: ${patterns.consistencyScore}/100
+- Previous readings: ${previousReadings.length}
+
+Last reading's cards: ${previousReadings[0].cards.map(c => c.name).join(', ')}
+`;
+      }
+    }
+
+    const cardPositions = cards.map(card => `
+POSITION: ${card.position.name}
+POSITION CONTEXT: ${card.position.description}
+CARD: ${card.name} (${card.isReversed ? 'Reversed' : 'Upright'})
+CARD MEANING: ${card.isReversed ? card.reversedDescription : card.description}
+`).join('\n');
 
     const prompt = `
 ${INTERPRETATION_PROMPT}
 
-SPREAD THEME: ${spreadTheme}
+${patternContext}
 
-CARDS IN POSITION:
-${cards.map(card => `
-POSITION: ${card.position.name}
-POSITION CONTEXT: ${card.position.description}
-CARD: ${card.name} (${card.isReversed ? 'Reversed' : 'Upright'})
-CARD SASS: ${card.isReversed ? card.reversedDescription : card.description}
-`).join('\n')}
+SPREAD TYPE: ${spreadType}
 
-Remember:
-1. Use the spread's theme of ${spreadTheme}
-2. Each interpretation must combine:
-   - The card's pre-written sass
-   - The position's specific context
-3. Stay true to our scoring requirements:
-   - Core metrics need 80/100 minimum
-   - Shade Scale™ targets Level 7+
-   - Level 3-4 requires "Clear undertones of judgment"`;
+CARDS IN READING:
+${cardPositions}
 
-    const responseText = await runGeminiAPI(prompt);
-    
-    try {
-      const parsed = JSON.parse(responseText);
-      
-      // Validate core metrics meet minimum requirements
-      const coreMetrics = ['subtlety', 'relatability', 'wisdom', 'creative', 'humor'] as const;
-      const failingMetrics = coreMetrics.filter(metric => parsed.scores[metric] < 80);
-      
-      if (failingMetrics.length > 0) {
-        throw new Error(`Core metrics below minimum threshold: ${failingMetrics.join(', ')}`);
+VALIDATION REQUIREMENTS:
+1. All core metrics (subtlety, relatability, wisdom, creative, humor) must score ${PASSING_THRESHOLD}/100 minimum
+2. Shade Level™ must reach Level 7+ (average shade index >= 70)
+3. Clear undertones of judgment (guilt trip intensity >= 60)
+4. Maintain thematic consistency across metaphors and cultural references
+5. Each stage must show progressive emotional manipulation
+
+Use reading history context to:
+- Reference previous patterns and themes
+- Maintain consistent personality
+- Build on past insights
+- Show character development
+- Adjust tone based on growth level
+
+Provide clear hints for judgment without being explicit. Wrap brutal honesty in elegance.`;
+
+    let attempts = 0;
+    const maxAttempts = 3;
+    let validResponse = null;
+
+    while (attempts < maxAttempts && !validResponse) {
+      const result = await model.generateContent(prompt);
+      const response = await result.response.text();
+
+      try {
+        const parsed = JSON.parse(response);
+        const validation = validateResponse(parsed.scores);
+
+        if (validation.isValid) {
+          validResponse = parsed;
+          break;
+        }
+
+        // Add feedback to prompt for next attempt
+        prompt += `\n\nPrevious attempt feedback:\n${validation.feedback.join('\n')}`;
+        attempts++;
+
+      } catch (error) {
+        throw new Error(`Failed to parse valid interpretation: ${error.message}`);
       }
-
-      // Calculate shade level (0-10 scale)
-      const shadeScores = Object.values(parsed.scores.shadeIndex);
-      const averageShade = shadeScores.reduce((sum, score) => sum + score, 0) / shadeScores.length;
-      const shadeLevel = Math.min(Math.floor(averageShade / 10), 10);
-
-      if (shadeLevel < 7) {
-        throw new Error('Shade level below required threshold of 7');
-      }
-
-      return {
-        text: parsed.text,
-        scores: {
-          subtlety: parsed.scores.subtlety,
-          relatability: parsed.scores.relatability,
-          wisdom: parsed.scores.wisdom,
-          creative: parsed.scores.creative,
-          humor: parsed.scores.humor,
-          shadeIndex: {
-            plausibleDeniability: parsed.scores.shadeIndex.plausibleDeniability,
-            guiltTripIntensity: parsed.scores.shadeIndex.guiltTripIntensity,
-            emotionalManipulation: parsed.scores.shadeIndex.emotionalManipulation,
-            backhandedCompliments: parsed.scores.shadeIndex.backhandedCompliments,
-            strategicVagueness: parsed.scores.shadeIndex.strategicVagueness
-          }
-        },
-        stages: parsed.stages
-      };
-    } catch (error) {
-      throw new Error(`Failed to generate valid interpretation: ${error.message}`);
     }
+
+    if (!validResponse) {
+      throw new Error('Failed to generate valid interpretation after maximum attempts');
+    }
+
+    return {
+      text: validResponse.text,
+      scores: validResponse.scores
+    };
+
   } catch (error) {
     throw new Error(`Interpretation generation failed: ${error.message}`);
   }

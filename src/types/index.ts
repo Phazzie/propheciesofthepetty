@@ -175,31 +175,31 @@ export interface Reading {
   spreadType: string;
 }
 
-export interface ReadingScores {
-  humor: number;         // 0-140 points
-  snark: number;        // 0-100 points
-  culturalResonance: number; // 0-60 points
-  metaphorMastery: number;   // 0-60 points
-  subtlety: number;     // 0-80 points
-  relatability: number; // 0-80 points
-  wisdom: number;       // 0-80 points
-  creative: number;     // 0-120 points
-  quotability: number;  // 0-60 points
-  shadeIndex: {
-    plausibleDeniability: number;    // 0-100
-    guiltTripIntensity: number;     // 0-100
-    emotionalManipulation: number;   // 0-100
-    backhandedCompliments: number;   // 0-100
-    strategicVagueness: number;      // 0-100
-  };
+// Base interfaces for scoring system
+export interface CoreMetrics {
+  subtlety: number;      // 0-100, passing ≥ 80
+  relatability: number;  // 0-100, passing ≥ 80
+  wisdom: number;        // 0-100, passing ≥ 80
+  creative: number;      // 0-100, passing ≥ 80
+  humor: number;         // 0-100, passing ≥ 80
+}
+
+export interface ExtendedMetrics {
+  snark: number;             // 0-100
+  culturalResonance: number; // 0-100
+  metaphorMastery: number;   // 0-100
 }
 
 export interface ShadeIndex {
   plausibleDeniability: number;    // 0-100
-  guiltTripIntensity: number;     // 0-100
+  guiltTripIntensity: number;      // 0-100
   emotionalManipulation: number;   // 0-100
   backhandedCompliments: number;   // 0-100
   strategicVagueness: number;      // 0-100
+}
+
+export interface ReadingScores extends CoreMetrics, ExtendedMetrics {
+  shadeIndex: ShadeIndex;
 }
 
 export interface ScoringBreakdown {
@@ -218,8 +218,8 @@ export interface EnhancedReadingInterpretation {
   scores: ReadingScores;
   patternTracking: {
     repeatedThemes: string[];
-    sophisticationGrowth: number;
-    consistencyScore: number;
+    sophisticationGrowth: number; // 0-100
+    consistencyScore: number;     // 0-100
   };
   stages: {
     denial: string;
@@ -233,17 +233,23 @@ export interface EnhancedReadingInterpretation {
 
 export interface SpreadPosition {
   name: string;
-  description: string;  // Our sassy position context
-  id?: string;
-  className?: string;
+  description: string;
 }
 
-export interface CardInSpread extends Card {
+export interface CardInSpread {
+  id: string;
+  name: string;
+  description: string;
+  reversedDescription?: string;
+  imageUrl: string;
+  type: 'major' | 'minor';
   position: SpreadPosition;
   isReversed: boolean;
 }
 
 export interface ReadingGeneration {
-  spreadType: string;
   cards: CardInSpread[];
+  spreadType: SpreadType;
+  userId: string;
+  question?: string;
 }

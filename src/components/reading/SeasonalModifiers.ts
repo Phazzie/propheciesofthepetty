@@ -1,3 +1,5 @@
+import { CoreMetrics, ShadeIndex } from '../../types';
+
 export interface SeasonalModifier {
   name: string;
   period: {
@@ -6,99 +8,94 @@ export interface SeasonalModifier {
   };
   description: string;
   effects: {
-    shadeBonus: number;
-    primaryMetric: keyof typeof SHADE_METRICS;
+    shadeBonus: number;        // 0-40 bonus points
+    primaryMetric: keyof CoreMetrics | 'shadeIndex';
     flavorText: string;
   };
 }
-
-// Define shade metrics with brilliant friend energy
-const SHADE_METRICS = {
-  plausibleDeniability: "Drawing parallels so elegant they take a week to land",
-  guiltTripIntensity: "The kind of insight that hits you in the shower days later",
-  emotionalManipulation: "Pattern recognition as performance art",
-  backhandedCompliments: "Observations so clever they circle back to kindness",
-  strategicVagueness: "The art of letting them connect their own dots"
-} as const;
 
 export const SEASONAL_MODIFIERS: SeasonalModifier[] = [
   {
     name: "Mercury Retrograde",
     period: {
-      start: { month: 12, day: 13 },
-      end: { month: 1, day: 1 }
+      start: { month: 11, day: 29 },
+      end: { month: 0, day: 18 }
     },
-    description: "Peak metaphor season",
-    effects: {
-      shadeBonus: 25,
-      primaryMetric: "plausibleDeniability",
-      flavorText: "When miscommunication becomes an art form"
-    }
-  },
-  {
-    name: "Cancer Season",
-    period: {
-      start: { month: 6, day: 21 },
-      end: { month: 7, day: 22 }
-    },
-    description: "Time for emotional brilliance",
-    effects: {
-      shadeBonus: 20,
-      primaryMetric: "emotionalManipulation",
-      flavorText: "When caring becomes cleverly crafted"
-    }
-  },
-  {
-    name: "Scorpio Season",
-    period: {
-      start: { month: 10, day: 23 },
-      end: { month: 11, day: 21 }
-    },
-    description: "Sharp wit hours",
+    description: "Communication chaos enhances passive-aggressive potential",
     effects: {
       shadeBonus: 30,
-      primaryMetric: "backhandedCompliments",
-      flavorText: "When truth becomes an elegant weapon"
+      primaryMetric: "shadeIndex",
+      flavorText: "When even the planets support your shade"
     }
   },
   {
     name: "Leo Season",
     period: {
-      start: { month: 7, day: 23 },
-      end: { month: 8, day: 22 }
+      start: { month: 6, day: 23 },
+      end: { month: 7, day: 22 }
     },
-    description: "Spotlight on genius",
+    description: "Peak dramatic energy",
     effects: {
-      shadeBonus: 15,
-      primaryMetric: "strategicVagueness",
-      flavorText: "When drama becomes performance art"
+      shadeBonus: 25,
+      primaryMetric: "creative",
+      flavorText: "When drama becomes an art form"
     }
   },
   {
-    name: "Full Moon",
+    name: "Holiday Season",
     period: {
-      start: { month: 0, day: 0 }, // Calculated dynamically
-      end: { month: 0, day: 0 }
+      start: { month: 10, day: 20 },
+      end: { month: 11, day: 31 }
     },
-    description: "Peak revelation hours",
+    description: "Family gatherings amplify passive-aggressive potential",
     effects: {
-      shadeBonus: 40,
-      primaryMetric: "guiltTripIntensity",
-      flavorText: "When insights become epiphanies"
+      shadeBonus: 35,
+      primaryMetric: "wisdom",
+      flavorText: "Deck the halls with subtle judgment"
     }
   }
 ];
 
-export function getActiveSeasonalModifiers(date: Date = new Date()): SeasonalModifier[] {
-  return SEASONAL_MODIFIERS.filter(modifier => {
-    if (modifier.name === "Full Moon") {
-      // Calculate full moon phase - simplified for example
-      return false; // Replace with actual moon phase calculation
-    }
+export function calculateSeasonalBonus(
+  date: Date,
+  metrics: CoreMetrics & { shadeIndex: ShadeIndex }
+): number {
+  const activeModifiers = SEASONAL_MODIFIERS.filter(modifier => 
+    isDateInPeriod(date, modifier.period)
+  );
 
-    const start = new Date(date.getFullYear(), modifier.period.start.month - 1, modifier.period.start.day);
-    const end = new Date(date.getFullYear(), modifier.period.end.month - 1, modifier.period.end.day);
-    
-    return date >= start && date <= end;
-  });
+  return activeModifiers.reduce((totalBonus, modifier) => {
+    const baseMetricScore = getMetricScore(metrics, modifier.effects.primaryMetric);
+    const multiplier = baseMetricScore >= 80 ? 1 : baseMetricScore / 100;
+    return totalBonus + (modifier.effects.shadeBonus * multiplier);
+  }, 0);
+}
+
+function isDateInPeriod(date: Date, period: SeasonalModifier['period']): boolean {
+  const month = date.getMonth();
+  const day = date.getDate();
+
+  const start = period.start;
+  const end = period.end;
+
+  // Handle year wrap-around (e.g., Dec-Jan periods)
+  if (start.month > end.month) {
+    return (month > start.month || (month === start.month && day >= start.day)) ||
+           (month < end.month || (month === end.month && day <= end.day));
+  }
+
+  // Normal period within same year
+  return (month > start.month || (month === start.month && day >= start.day)) &&
+         (month < end.month || (month === end.month && day <= end.day));
+}
+
+function getMetricScore(
+  metrics: CoreMetrics & { shadeIndex: ShadeIndex },
+  metric: keyof (CoreMetrics & { shadeIndex: ShadeIndex })
+): number {
+  if (metric === 'shadeIndex') {
+    const shadeValues = Object.values(metrics.shadeIndex);
+    return shadeValues.reduce((sum: number, val: number) => sum + val, 0) / shadeValues.length;
+  }
+  return metrics[metric];
 }
