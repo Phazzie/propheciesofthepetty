@@ -1,31 +1,78 @@
-name: Quality Gates
-on: [push, pull_request]
+name: Quality Gates *(Because standards matter)*
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
 
 jobs:
   quality:
+    name: Quality Check *(Just making sure everything is up to par)*
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout Repository *(Let's see what you've done)*
+        uses: actions/checkout@v3
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
+      - name: Setup Node.js *(Using the correct version, naturally)*
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'npm'
           
-      - name: Install Dependencies
+      - name: Install Dependencies *(All of them, please)*
         run: npm ci
         
-      - name: Type Check
+      - name: Type Check *(Because we care about type safety)*
         run: npm run type-check
         
-      - name: Run Tests with Coverage
+      - name: Run Tests with Coverage *(We expect nothing less than 85%)*
         run: npm run test:coverage
         
-      - name: Lint Check
+      - name: Lint Check *(Keeping things tidy)*
         run: npm run lint
         
-      - name: Create Status Files
+      - name: Update Status Files *(So we're all on the same page)*
         run: |
-          echo "# Test Status (Auto-Updated)" > TEST_STATUS.md
-          echo "# Project Roadmap (Auto-Updated)" > ROADMAP.md
-          echo "# Project Blockers (Auto-Updated)" > BLOCKERS.md
+          echo "# Test Status Report (Auto-Updated)" > docs/TEST_STATUS.md
+          echo "Last Updated: $(date)" >> docs/TEST_STATUS.md
+          echo "## Coverage Report" >> docs/TEST_STATUS.md
+          cat coverage/coverage-summary.json >> docs/TEST_STATUS.md
+          
+          echo "# Project Roadmap (Auto-Updated)" > docs/ROADMAP.md
+          echo "Last Updated: $(date)" >> docs/ROADMAP.md
+          echo "## Current Status" >> docs/ROADMAP.md
+          
+          echo "# Project Blockers (Auto-Updated)" > docs/BLOCKERS.md
+          echo "Last Updated: $(date)" >> docs/BLOCKERS.md
+          echo "## Active Blockers" >> docs/BLOCKERS.md
+
+      - name: Check for Partial Implementations *(We notice these things)*
+        run: |
+          if grep -r "TODO" src/; then
+            echo "Warning: Partial implementations detected" >> docs/BLOCKERS.md
+            exit 1
+          fi
+
+      - name: Validate Documentation *(It's really quite important)*
+        run: |
+          if ! find . -name "*.ts" -o -name "*.tsx" | xargs grep -l "@description" > /dev/null; then
+            echo "Error: Missing documentation in TypeScript files" >> docs/BLOCKERS.md
+            exit 1
+          fi
+
+      - name: Upload Coverage Report *(For future reference)*
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - name: Commit Updated Status Files *(Keeping records... meticulously)*
+        if: github.event_name == 'push'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/TEST_STATUS.md docs/ROADMAP.md docs/BLOCKERS.md
+          git commit -m "Update status files [skip ci]" || echo "No changes to commit"
+          git push
