@@ -94,7 +94,7 @@ export const LoadingSpinner: React.FC<Props> = ({
       aria-live="polite"
       data-testid="loading-spinner"
       data-context={context}
-    ></div>
+    >
       <Loader 
         className="animate-spin text-purple-600" 
         style={{ width: size, height: size }}

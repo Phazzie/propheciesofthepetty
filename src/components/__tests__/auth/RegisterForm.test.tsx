@@ -1,8 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { RegisterForm } from '../RegisterForm';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { RegisterForm } from '../../auth/RegisterForm';
 import { AuthContext } from '../../../context/AuthContext';
+import { EmailVerification } from '../../../lib/emailVerification';
 import '@testing-library/jest-dom';
+
+// Mock EmailVerification
+vi.mock('../../../lib/emailVerification');
 
 // Mock Lucide icons
 vi.mock('lucide-react', () => ({
@@ -101,31 +105,35 @@ describe('RegisterForm', () => {
     const passwordInput = screen.getByLabelText(/^password$/i);
     const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
     const submitButton = screen.getByRole('button', { name: /create account$/i });
-
+    
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'ValidPass123' } });
     fireEvent.change(confirmPasswordInput, { target: { value: 'ValidPass123' } });
     fireEvent.click(submitButton);
-
+    
     expect(screen.getByText(/must accept the terms/i)).toBeInTheDocument();
   });
 
-  it('submits form with valid data', () => {
+  it('submits form with valid data', async () => {
+    vi.mocked(EmailVerification.sendVerificationEmail).mockResolvedValueOnce();
     renderComponent();
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/^password$/i);
     const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
     const termsCheckbox = screen.getByLabelText(/terms and conditions/i);
-
+    
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'ValidPass123' } });
     fireEvent.change(confirmPasswordInput, { target: { value: 'ValidPass123' } });
     fireEvent.click(termsCheckbox);
-
+    
     const submitButton = screen.getByRole('button', { name: /create account$/i });
     fireEvent.click(submitButton);
 
-    expect(mockRegister).toHaveBeenCalledWith('test@example.com', 'ValidPass123');
+    await waitFor(() => {
+      expect(mockRegister).toHaveBeenCalledWith('test@example.com', 'ValidPass123');
+      expect(EmailVerification.sendVerificationEmail).toHaveBeenCalledWith('test@example.com');
+    });
   });
 
   it('shows loading state', () => {

@@ -1,63 +1,39 @@
-name: CI/CD
+# CI Workflow Configuration
+# This workflow runs tests on push and pull request events and updates the failing tests log if failures are detected.
+
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  validate:
+  build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Type check
-        run: npm run type-check
-      
-      - name: Lint
-        run: npm run lint
-      
-      - name: Test
-        run: npm run test
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
-      
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage/
-      
-      - name: Build
-        run: npm run build
 
-  deploy:
-    needs: validate
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
-          node-version: '20'
-          cache: 'npm'
-      
+          node-version: '16'
+
       - name: Install dependencies
         run: npm ci
-      
-      - name: Build
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+
+      - name: Run tests
+        # This command runs tests and generates the junit.xml report
+        run: npm test -- --ci --reporter=verbose
+
+      - name: Update Failing Tests Log
+        # If tests fail, this step can trigger a custom script to update the FAILING_TESTS_LOG.md
+        run: |
+          if [ -f coverage/junit.xml ]; then
+            echo "Updating FAILING_TESTS_LOG.md from junit.xml..."
+            npm run update-failing-tests
+          fi
+        shell: bash

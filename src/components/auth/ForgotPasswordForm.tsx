@@ -46,25 +46,27 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
         <div className="flex items-center mb-6">
           <button
             onClick={onBack}
-            className="text-purple-600 hover:text-purple-700 p-2 -ml-2"
+            className="text-purple-600 hover:text-purple-700 p-2 -ml-2 flex items-center"
             aria-label="Go back"
+            type="button"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-2xl font-bold text-purple-900 ml-2">
-            Reset Password
-          </h2>
+          <h2 className="text-2xl font-bold text-purple-900 ml-2">Reset Password</h2>
         </div>
 
         {success ? (
           <div className="text-center">
-            <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-4">
-              Password reset instructions have been sent to your email.
-              Please check your inbox and follow the instructions.
-            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Check your email
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Password reset instructions have been sent to your email address.
+            </p>
             <button
               onClick={onBack}
-              className="text-purple-600 hover:text-purple-700"
+              className="text-purple-600 hover:text-purple-700 font-medium"
+              type="button"
             >
               Return to login
             </button>
@@ -73,7 +75,7 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
           <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
+                Email address
               </label>
               <div className="relative">
                 <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -86,12 +88,12 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
                     setValidation({ isValid: true, error: '' });
                   }}
                   className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                    !validation.isValid || error ? 'border-red-500' : 'border-gray-300'
+                    !validation.isValid ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="your@email.com"
                   required
-                  aria-invalid={!validation.isValid || !!error}
-                  aria-describedby={(!validation.isValid || error) ? 'email-error' : undefined}
+                  aria-invalid={!validation.isValid}
+                  aria-describedby={!validation.isValid ? 'email-error' : undefined}
                   disabled={loading}
                 />
               </div>
@@ -100,9 +102,6 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
                   {validation.error}
                 </div>
               )}
-              <p className="mt-2 text-sm text-gray-500">
-                Enter your email address and we'll send you instructions to reset your password.
-              </p>
             </div>
 
             {error && (
@@ -116,15 +115,14 @@ export const ForgotPasswordForm: React.FC<Props> = ({ onBack }) => {
               type="submit"
               disabled={loading}
               className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-busy={loading}
             >
               {loading ? (
                 <span className="flex items-center justify-center">
                   <Loader className="w-5 h-5 animate-spin mr-2" />
-                  Sending...
+                  Sending instructions...
                 </span>
               ) : (
-                'Send Reset Instructions'
+                'Send reset instructions'
               )}
             </button>
           </form>

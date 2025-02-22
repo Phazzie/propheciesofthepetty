@@ -12,7 +12,14 @@
 
 export type SubscriptionType = 'free' | 'major_arcana' | 'full_deck';
 
-export type SpreadType = 'classic' | 'celtic-cross' | 'three-card';
+export type SpreadType = 
+  | 'past-present-future'
+  | 'celtic-cross' 
+  | 'im-fine' 
+  | 'just-saying'
+  | 'whatever'
+  | 'no-offense'
+  | `custom-${number}`;
 
 export type ThematicCategory = 'humor' | 'snark' | 'culturalResonance' | 'metaphorMastery';
 
@@ -38,19 +45,10 @@ export interface Card {
   name: string;
   /** Upright meaning */
   description: string;
-  /** Reversed meaning */
-  reversedDescription?: string;
   /** Card image URL */
   imageUrl: string;
   /** Card type (major/minor arcana) */
   type: 'major' | 'minor';
-  /** Associated mythological creature */
-  monsterPair?: {
-    /** Monster name */
-    name: string;
-    /** Monster description */
-    description: string;
-  };
 }
 
 /**
@@ -67,11 +65,6 @@ export interface ReadingScore {
   creative: number;
   humor: number;
 
-  /** Additional metrics with weights */
-  snark: number;         // Base 0-100 with 1.0x multiplier
-  culturalResonance: number;  // Base 0-100 with 0.6x multiplier
-  metaphorMastery: number;    // Base 0-100 with 0.6x multiplier
-
   /** Shade Scale™ components - All 0-100 */
   shadeIndex: {
     /** Level 1-2: Barely noticeable criticism */
@@ -85,18 +78,6 @@ export interface ReadingScore {
     /** Level 9-10: So subtle it takes days to process */
     strategicVagueness: number;
   };
-
-  /** Special condition achievements */
-  specialConditions?: Array<{
-    id: string;
-    name: string;
-    description: string;
-    multiplier: number;
-    unlocked: boolean;
-  }>;
-
-  /** Spread-specific modifiers */
-  spreadModifiers?: SpreadModifiers;
 }
 
 /**
@@ -198,6 +179,12 @@ export interface ShadeIndex {
   strategicVagueness: number;      // 0-100
 }
 
+export interface ShadeLevel {
+  description: string;
+  criteria: string[];
+  multiplier?: number;
+}
+
 export interface ReadingScores extends CoreMetrics, ExtendedMetrics {
   shadeIndex: ShadeIndex;
 }
@@ -231,25 +218,40 @@ export interface EnhancedReadingInterpretation {
   breakdown: ScoringBreakdown[];
 }
 
-export interface SpreadPosition {
+export type SpreadPosition = {
   name: string;
   description: string;
+};
+
+export interface SpreadConfig {
+  id: SpreadType;
+  name: string;
+  description: string;
+  cardCount: number;
+  icon: 'threeCard' | 'celticCross' | 'starSpread' | 'imFine' | 'justSaying' | 'whatever' | 'noOffense';
+  positions: SpreadPosition[];
+  isCustom?: boolean;
 }
 
-export interface CardInSpread {
-  id: string;
-  name: string;
-  description: string;
-  reversedDescription?: string;
-  imageUrl: string;
-  type: 'major' | 'minor';
-  position: SpreadPosition;
+export interface SpreadModifier {
+  baseMultiplier: number;
+  categoryMultipliers: {
+    humor: number;
+    snark: number;
+    culturalResonance: number;
+    metaphorMastery: number;
+  };
+  thematicBonus?: number;
+}
+
+export interface CardInSpread extends Card {
+  position: number;
   isReversed: boolean;
 }
 
-export interface ReadingGeneration {
-  cards: CardInSpread[];
+export type ReadingConfiguration = {
   spreadType: SpreadType;
+  cards: CardInSpread[];
   userId: string;
   question?: string;
-}
+};

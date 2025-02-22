@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { AlertCircle, ArrowLeft, Loader, Mail, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
-import { ValidationUtils } from '../../lib/validation';
-import { EmailVerification } from '../../lib/emailVerification';
+import { AlertCircle, ArrowLeft, Loader, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { logger } from '../../lib/logger';
+import { EmailVerification } from '../../lib/emailVerification';
 
 interface Props {
   onBack: () => void;
@@ -40,40 +39,71 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
     terms: []
   });
 
-  const [passwordStrength, setPasswordStrength] = useState({
-    score: 0,
-    feedback: [] as string[]
-  });
-
   useEffect(() => {
-    if (formData.password) {
-      const { score, feedback } = ValidationUtils.checkPasswordStrength(formData.password);
-      setPasswordStrength({ score, feedback });
+    if (formData.confirmPassword && formData.password !== formData.confirmPassword) {
+      setErrors(prev => ({
+        ...prev,
+        confirmPassword: ['Passwords do not match']
+      }));
+    } else {
+      setErrors(prev => ({
+        ...prev,
+        confirmPassword: []
+      }));
     }
-  }, [formData.password]);
+  }, [formData.password, formData.confirmPassword]);
+
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = [];
+    if (!password) {
+      errors.push('Password is required');
+      return errors;
+    }
+    
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters');
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain one uppercase letter');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain one lowercase letter');
+    }
+    if (!/[0-9]/.test(password)) {
+      errors.push('Password must contain one number');
+    }
+    return errors;
+  };
 
   const validateForm = (): boolean => {
-    const emailValidation = ValidationUtils.validateEmail(formData.email);
-    const passwordValidation = ValidationUtils.validatePassword(formData.password);
-    const confirmValidation = ValidationUtils.validatePasswordConfirmation(
-      formData.password,
-      formData.confirmPassword
-    );
-    const termsValidation = ValidationUtils.validateTermsAcceptance(formData.acceptTerms);
+    const newErrors: FormErrors = {
+      email: [],
+      password: [],
+      confirmPassword: [],
+      terms: []
+    };
 
-    setErrors({
-      email: emailValidation.errors,
-      password: passwordValidation.errors,
-      confirmPassword: confirmValidation.errors,
-      terms: termsValidation.errors
-    });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email) {
+      newErrors.email.push('Email is required');
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email.push('Please enter a valid email address');
+    }
 
-    return (
-      emailValidation.isValid &&
-      passwordValidation.isValid &&
-      confirmValidation.isValid &&
-      termsValidation.isValid
-    );
+    newErrors.password = validatePassword(formData.password);
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword.push('Please confirm your password');
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword.push('Passwords do not match');
+    }
+
+    if (!formData.acceptTerms) {
+      newErrors.terms.push('You must accept the terms and conditions');
+    }
+
+    setErrors(newErrors);
+    return Object.values(newErrors).every(field => field.length === 0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,9 +127,10 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
     }
   };
 
-  const getPasswordStrengthColor = () => {
-    const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-green-600'];
-    return colors[passwordStrength.score] || colors[0];
+  const getPasswordStrengthColor = (errors: string[]) => {
+    const score = 4 - errors.length;
+    const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500'];
+    return colors[score] || colors[0];
   };
 
   return (
@@ -110,6 +141,7 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
             onClick={onBack}
             className="text-purple-600 hover:text-purple-700 p-2 -ml-2"
             aria-label="Go back"
+            type="button"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -169,7 +201,7 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label="show password"
                 disabled={loading}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -177,19 +209,19 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
             </div>
             {formData.password && (
               <div id="password-strength" className="mt-2">
+                {errors.password.length > 0 && (
+                  <ul className="mt-1 space-y-1">
+                    {errors.password.map((error, index) => (
+                      <li key={index} className="text-sm text-red-600">{error}</li>
+                    ))}
+                  </ul>
+                )}
                 <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${getPasswordStrengthColor()} transition-all duration-300`}
-                    style={{ width: `${(passwordStrength.score + 1) * 20}%` }}
+                    className={`h-full ${getPasswordStrengthColor(errors.password)} transition-all duration-300`}
+                    style={{ width: `${(4 - errors.password.length) * 25}%` }}
                   />
                 </div>
-                <ul className="mt-2 space-y-1">
-                  {passwordStrength.feedback.map((feedback, index) => (
-                    <li key={index} className="text-sm text-gray-600 flex items-center">
-                      {feedback}
-                    </li>
-                  ))}
-                </ul>
               </div>
             )}
           </div>
@@ -211,11 +243,12 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
                 placeholder="••••••••"
                 required
                 aria-invalid={errors.confirmPassword.length > 0}
+                aria-describedby={errors.confirmPassword.length > 0 ? 'confirm-password-error' : undefined}
                 disabled={loading}
               />
             </div>
             {errors.confirmPassword.length > 0 && (
-              <div className="mt-1 text-sm text-red-600">
+              <div id="confirm-password-error" className="mt-1 text-sm text-red-600">
                 {errors.confirmPassword.join(', ')}
               </div>
             )}
@@ -233,7 +266,7 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
               disabled={loading}
             />
             <label htmlFor="acceptTerms" className="ml-2 text-sm text-gray-600">
-              I accept the terms and conditions
+              Terms and conditions
             </label>
           </div>
           {errors.terms.length > 0 && (
@@ -255,10 +288,10 @@ export const RegisterForm: React.FC<Props> = ({ onBack }) => {
             {loading ? (
               <span className="flex items-center justify-center">
                 <Loader className="w-5 h-5 animate-spin mr-2" />
-                Creating Account...
+                Creating account...
               </span>
             ) : (
-              'Create Account'
+              'Create account'
             )}
           </button>
         </form>

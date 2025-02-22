@@ -15,12 +15,14 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\"",
     "lint-staged": "lint-staged",
     "validate": "npm-run-all --parallel type-check lint test",
-    "validate-staged": "lint-staged && npm run type-check"
+    "validate-staged": "lint-staged && npm run type-check",
+    "update-failing-tests": "node scripts/updateFailingTests.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.39.7",
     "env-validator": "^1.0.0",
+    "express-rate-limit": "^7.5.0",
     "framer-motion": "^12.4.3",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",

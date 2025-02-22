@@ -1,30 +1,22 @@
-const fs = require('fs');
-
-const testDir = 'src/components/__tests__';
-const testFiles = fs.readdirSync(testDir).flatMap((dir: string) => fs.readdirSync(`${testDir}/${dir}`));
-const totalTests = testFiles.length;
-
-const results = {
-  totalTests: totalTests,
-  passedTests: 12, // Example value, replace with actual passed tests count
-  failedTests: totalTests - 12, // Example value, replace with actual failed tests count
-  percentagePass: (12 / totalTests) * 100 // Example calculation
-};
-
-console.log(`Total Tests: ${results.totalTests}`);
-console.log(`Passed Tests: ${results.passedTests}`);
-console.log(`Failed Tests: ${results.failedTests}`);
-console.log(`Percentage Pass: ${results.percentagePass.toFixed(2)}%`);
-
-// Additional tests needed based on project requirements
-const additionalTestsNeeded = 5; // Example value, replace with actual needed tests count
-console.log(`Additional Tests Needed: ${additionalTestsNeeded}`);
-
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { LoginForm } from '../../components/auth/LoginForm';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { LoginForm } from '../../auth/LoginForm';
 import { AuthContext } from '../../../context/AuthContext';
 import '@testing-library/jest-dom';
+
+// Mock ForgotPasswordForm
+vi.mock('../../auth/ForgotPasswordForm', () => ({
+  ForgotPasswordForm: ({ onBack }: { onBack: () => void }) => (
+    <div data-testid="forgot-password-form">
+      <button onClick={onBack}>Back</button>
+    </div>
+  )
+}));
+
+// Mock RegisterForm
+vi.mock('../../auth/RegisterForm', () => ({
+  RegisterForm: () => <div data-testid="register-form">Register Form</div>
+}));
 
 // Mock Lucide icons
 vi.mock('lucide-react', () => ({
@@ -53,12 +45,6 @@ describe('LoginForm', () => {
       login: mockLogin,
       loading: false,
       error: null,
-      register: jest.fn() as any,
-      logout: jest.fn() as any,
-      requestPasswordReset: jest.fn() as any,
-      refreshSession: jest.fn() as any,
-      user: null,
-      session: null,
       ...authContextValue
     };
 
@@ -83,34 +69,36 @@ describe('LoginForm', () => {
   it('toggles password visibility', () => {
     renderComponent();
     const passwordInput = screen.getByLabelText(/^password$/i);
-    const toggleButton = screen.getByRole('button', { name: /show password/i });
+    const toggleButton = screen.getByRole('button', { name: /toggle password/i });
 
     expect(passwordInput).toHaveAttribute('type', 'password');
     fireEvent.click(toggleButton);
     expect(passwordInput).toHaveAttribute('type', 'text');
+    fireEvent.click(toggleButton);
+    expect(passwordInput).toHaveAttribute('type', 'password');
   });
 
   it('switches to register form view', () => {
     renderComponent();
-    fireEvent.click(screen.getByText(/don't have an account/i));
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
     expect(screen.getByTestId('register-form')).toBeInTheDocument();
   });
 
   it('validates email format', async () => {
     renderComponent();
     const emailInput = screen.getByLabelText(/email/i);
-    const submitButton = screen.getByRole('button', { name: /login/i });
+    const submitButton = screen.getByRole('button', { name: /sign in/i });
 
     fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
     fireEvent.click(submitButton);
 
-    expect(await screen.findByText(/please enter a valid email address/i)).toBeInTheDocument();
+    expect(await screen.findByText(/invalid email format/i)).toBeInTheDocument();
   });
 
   it('validates password length', async () => {
     renderComponent();
     const passwordInput = screen.getByLabelText(/^password$/i);
-    const submitButton = screen.getByRole('button', { name: /login/i });
+    const submitButton = screen.getByRole('button', { name: /sign in/i });
 
     fireEvent.change(passwordInput, { target: { value: '123' } });
     fireEvent.click(submitButton);
@@ -122,13 +110,15 @@ describe('LoginForm', () => {
     renderComponent();
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/^password$/i);
-    const submitButton = screen.getByRole('button', { name: /login/i });
+    const submitButton = screen.getByRole('button', { name: /sign in/i });
 
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'validPass123' } });
     fireEvent.click(submitButton);
 
-    expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'validPass123');
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'validPass123', false);
+    });
   });
 
   it('shows loading state', () => {
@@ -143,21 +133,9 @@ describe('LoginForm', () => {
     expect(screen.getByTestId('alert-icon')).toBeInTheDocument();
   });
 
-  it('validates email format', async () => {
+  it('switches to forgot password form', () => {
     renderComponent();
-    const emailInput = screen.getByLabelText(/email/i);
-    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
-    fireEvent.blur(emailInput);
-    expect(screen.getByText(/invalid email address/i)).toBeInTheDocument();
-  });
-
-  it('submits form with valid data', async () => {
-    renderComponent();
-    const emailInput = screen.getByLabelText(/email/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'ValidPass123' } });
-    fireEvent.click(screen.getByRole('button', { name: /login/i }));
-    expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'ValidPass123');
+    fireEvent.click(screen.getByRole('button', { name: /forgot password/i }));
+    expect(screen.getByTestId('forgot-password-form')).toBeInTheDocument();
   });
 });

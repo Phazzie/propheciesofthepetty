@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { AlertCircle, Loader, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { logger } from '../../lib/logger';
 import { ValidationError } from '../../lib/errors';
@@ -18,7 +18,7 @@ interface ValidationState {
 }
 
 export const LoginForm: React.FC = () => {
-  const { login, loading, error: authError } = useContext(AuthContext);
+  const { login, loading, error: authError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -34,7 +34,6 @@ export const LoginForm: React.FC = () => {
     rememberMe: false
   });
 
-  // Clear errors when form data changes
   useEffect(() => {
     setError(null);
     setValidationErrors({ email: [], password: [] });
@@ -47,7 +46,7 @@ export const LoginForm: React.FC = () => {
     if (!formData.email) {
       errors.email.push('Email is required');
     } else if (!emailRegex.test(formData.email)) {
-      errors.email.push('Please enter a valid email address');
+      errors.email.push('Invalid email format');
     }
 
     if (!formData.password) {
@@ -64,12 +63,13 @@ export const LoginForm: React.FC = () => {
     e.preventDefault();
     setError(null);
 
-    try {
-      if (!validateForm()) {
-        return;
-      }
+    if (!validateForm()) {
+      return;
+    }
 
+    try {
       await login(formData.email, formData.password, formData.rememberMe);
+      logger.info('Login successful', { email: formData.email });
     } catch (err) {
       const message = err instanceof ValidationError 
         ? err.message 
@@ -90,14 +90,10 @@ export const LoginForm: React.FC = () => {
   return (
     <div className="max-w-md mx-auto">
       <div className="bg-white rounded-lg shadow-lg p-8">
-        <div aria-live="polite" className="sr-only">
-          {loading ? 'Signing in...' : error ? 'Login error: ' + error : ''}
-        </div>
-
         <h2 className="text-2xl font-bold text-purple-900 mb-6 text-center">
-          Sign in
+          Welcome to Passive-Aggressive Tarot
         </h2>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -151,7 +147,7 @@ export const LoginForm: React.FC = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label="toggle password"
                 disabled={loading}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -204,7 +200,7 @@ export const LoginForm: React.FC = () => {
             {loading ? (
               <span className="flex items-center justify-center">
                 <Loader className="w-5 h-5 animate-spin mr-2" aria-hidden="true" />
-                Signing in...
+                Logging in...
               </span>
             ) : (
               'Sign in'
