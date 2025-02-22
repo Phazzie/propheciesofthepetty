@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 import { AlertCircle, Loader, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { logger } from '../../lib/logger';
 import { ValidationError } from '../../lib/errors';
@@ -18,7 +18,7 @@ interface ValidationState {
 }
 
 export const LoginForm: React.FC = () => {
-  const { login, loading, error: authError } = useAuth();
+  const { login, loading, error: authError } = useContext(AuthContext);
   const [showPassword, setShowPassword] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);

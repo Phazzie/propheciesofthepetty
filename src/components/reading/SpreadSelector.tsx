@@ -1,7 +1,8 @@
 /** @jsxImportSource react */
-import { type FC, useState } from 'react';
+import React, { useMemo, useState, useCallback, memo } from 'react';
 import { Layout, CopyX, Star, Info, MessageCircle, ThumbsUp, XSquare, Coffee, Plus } from 'lucide-react';
 import { CustomSpreadBuilder } from './CustomSpreadBuilder';
+import { SkeletonLoader } from '../SkeletonLoader';
 
 export type SpreadType = 'classic' | 'celtic-cross' | 'star-guide' | 'im-fine' | 'just-saying' | 'whatever' | 'no-offense' | `custom-${number}`;
 
@@ -29,7 +30,7 @@ const spreadIcons = {
   custom: Plus
 } as const;
 
-const SPREADS: SpreadConfig[] = [
+export const SPREADS: SpreadConfig[] = [
   {
     id: 'classic',
     name: 'Past, Present, Future',
@@ -131,20 +132,107 @@ const SPREADS: SpreadConfig[] = [
   }
 ];
 
+// Memoize individual spread items
+const SpreadItem = memo<{
+  spread: SpreadConfig;
+  isSelected: boolean;
+  onSelect: (spread: SpreadConfig) => void;
+}>(({ spread, isSelected, onSelect }) => {
+  const Icon = spread.isCustom ? spreadIcons.custom : spreadIcons[spread.icon];
+  
+  const handleClick = useCallback(() => {
+    onSelect(spread);
+  }, [spread, onSelect]);
+
+  return (
+    <div className="relative group">
+      <button
+        onClick={handleClick}
+        className={`
+          w-full p-6 rounded-lg transition-all duration-300
+          ${isSelected 
+            ? 'bg-purple-600 text-white shadow-lg scale-105 ring-2 ring-purple-300' 
+            : 'bg-white hover:bg-purple-50 text-gray-800 shadow-md hover:scale-102'
+          }
+        `}
+        aria-selected={isSelected}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className={isSelected ? 'text-white' : 'text-purple-600'}>
+            <Icon className="w-6 h-6" />
+          </div>
+          <span className="text-sm font-medium">
+            {spread.cardCount} cards
+          </span>
+        </div>
+        <h3 className="text-lg font-semibold mb-2">{spread.name}</h3>
+        <p className={`text-sm ${
+          isSelected ? 'text-purple-100' : 'text-gray-600'
+        }`} data-testid="spread-description">
+          {spread.description}
+        </p>
+      </button>
+
+      {isSelected && (
+        <div className="mt-4 bg-purple-50 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Info className="w-4 h-4 text-purple-600" />
+            <h4 className="font-medium text-purple-900">Card Positions</h4>
+          </div>
+          <ul className="space-y-2">
+            {spread.positions.map((position, index) => (
+              <li key={index} className="text-sm">
+                <span className="font-medium text-purple-900">{position.name}:</span>
+                <span className="text-gray-600 ml-1">{position.description}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+});
+
+SpreadItem.displayName = 'SpreadItem';
+
 interface Props {
   onSelect: (spread: SpreadConfig) => void;
   selectedSpread: SpreadConfig | null;
+  isLoading?: boolean;
 }
 
-export const SpreadSelector: FC<Props> = ({ onSelect, selectedSpread }) => {
+export const SpreadSelector: React.FC<Props> = ({ onSelect, selectedSpread, isLoading }) => {
   const [showCustomBuilder, setShowCustomBuilder] = useState(false);
   const [customSpreads, setCustomSpreads] = useState<SpreadConfig[]>([]);
 
-  const handleCustomSpreadSave = (newSpread: SpreadConfig) => {
+  const handleCustomSpreadSave = useCallback((newSpread: SpreadConfig) => {
     setCustomSpreads(prev => [...prev, newSpread]);
     setShowCustomBuilder(false);
     onSelect(newSpread);
-  };
+  }, [onSelect]);
+
+  const allSpreads = useMemo(() => [...SPREADS, ...customSpreads], [customSpreads]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center">
+          <SkeletonLoader width={200} height={32} className="mx-auto mb-2" />
+          <SkeletonLoader width={300} height={24} className="mx-auto" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array(6).fill(0).map((_, i) => (
+            <SkeletonLoader 
+              key={i}
+              variant="rectangular"
+              height={240}
+              className="rounded-lg"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (showCustomBuilder) {
     return (
@@ -154,8 +242,6 @@ export const SpreadSelector: FC<Props> = ({ onSelect, selectedSpread }) => {
       />
     );
   }
-
-  const allSpreads = [...SPREADS, ...customSpreads];
 
   return (
     <div className="space-y-8">
@@ -169,60 +255,15 @@ export const SpreadSelector: FC<Props> = ({ onSelect, selectedSpread }) => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {allSpreads.map((spread) => {
-          const Icon = spread.isCustom ? spreadIcons.custom : spreadIcons[spread.icon];
-          const isSelected = selectedSpread?.id === spread.id;
-          
-          return (
-            <div key={spread.id} className="relative group">
-              <button
-                onClick={() => onSelect(spread)}
-                className={`
-                  w-full p-6 rounded-lg transition-all duration-300
-                  ${isSelected 
-                    ? 'bg-purple-600 text-white shadow-lg scale-105 ring-2 ring-purple-300' 
-                    : 'bg-white hover:bg-purple-50 text-gray-800 shadow-md hover:scale-102'
-                  }
-                `}
-                aria-selected={isSelected}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={isSelected ? 'text-white' : 'text-purple-600'}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <span className="text-sm font-medium">
-                    {spread.cardCount} cards
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold mb-2">{spread.name}</h3>
-                <p className={`text-sm ${
-                  isSelected ? 'text-purple-100' : 'text-gray-600'
-                }`} data-testid="spread-description">
-                  {spread.description}
-                </p>
-              </button>
+        {allSpreads.map((spread) => (
+          <SpreadItem
+            key={spread.id}
+            spread={spread}
+            isSelected={selectedSpread?.id === spread.id}
+            onSelect={onSelect}
+          />
+        ))}
 
-              {isSelected && (
-                <div className="mt-4 bg-purple-50 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Info className="w-4 h-4 text-purple-600" />
-                    <h4 className="font-medium text-purple-900">Card Positions</h4>
-                  </div>
-                  <ul className="space-y-2">
-                    {spread.positions.map((position, index) => (
-                      <li key={index} className="text-sm">
-                        <span className="font-medium text-purple-900">{position.name}:</span>
-                        <span className="text-gray-600 ml-1">{position.description}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Custom Spread Button */}
         <button
           onClick={() => setShowCustomBuilder(true)}
           className="w-full p-6 rounded-lg border-2 border-dashed border-purple-300 hover:border-purple-500 hover:bg-purple-50 transition-colors flex flex-col items-center justify-center text-purple-600 hover:text-purple-700"

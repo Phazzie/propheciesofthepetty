@@ -16,7 +16,7 @@ describe('useSession', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
 
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as vi.Mock).mockReturnValue({
       user: mockUser,
       logout: mockLogout
     });
@@ -122,7 +122,7 @@ describe('useSession', () => {
   });
 
   it('does not start session check without user', async () => {
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as vi.Mock).mockReturnValue({
       user: null,
       logout: mockLogout
     });

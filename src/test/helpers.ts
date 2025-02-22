@@ -1,23 +1,19 @@
-import { render, screen } from '@testing-library/react'
-import { Card } from '../Card'
-import { createMockCard } from '../../test/helpers'
+import type { ReactElement } from 'react';
+import { render as rtlRender } from '@testing-library/react';
 
-describe('Card', () => {
-  const mockCard = createMockCard()
+export interface MockCard {
+  name: string;
+  // Add other card properties as needed
+}
 
-  test('renders card name', () => {
-    render(<Card {...mockCard} />)
-    expect(screen.getByText(mockCard.name)).toBeInTheDocument()
-  })
-})import { render, screen } from '@testing-library/react'
-import { Card } from '../Card'
-import { createMockCard } from '../../test/helpers'
+export function createMockCard(): MockCard {
+  return {
+    name: 'Test Card'
+  };
+}
 
-describe('Card', () => {
-  const mockCard = createMockCard()
+type RenderResult = ReturnType<typeof rtlRender>;
 
-  test('renders card name', () => {
-    render(<Card {...mockCard} />)
-    expect(screen.getByText(mockCard.name)).toBeInTheDocument()
-  })
-})
+export function renderComponent(ui: ReactElement): RenderResult {
+  return rtlRender(ui);
+}

@@ -1,6 +1,7 @@
 import { CoreMetrics, ShadeIndex } from '../types';
 import { ExtendedMetrics } from '../types';
 import { ValidationError } from './errors';
+import { logger } from './logger';
 
 interface ValidationResult {
   isValid: boolean;
@@ -146,53 +147,129 @@ export class ValidationUtils {
     };
   }
 
-  static checkPasswordStrength(password: string): PasswordStrengthResult {
-    const requirements = {
-      hasMinLength: password.length >= 8,
-      hasUppercase: /[A-Z]/.test(password),
-      hasLowercase: /[a-z]/.test(password),
-      hasNumber: /\d/.test(password),
-      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-    };
-
-    const feedback: string[] = [];
-    if (!requirements.hasMinLength) feedback.push('Must be at least 8 characters long');
-    if (!requirements.hasUppercase) feedback.push('Must include an uppercase letter');
-    if (!requirements.hasLowercase) feedback.push('Must include a lowercase letter');
-    if (!requirements.hasNumber) feedback.push('Must include a number');
-    if (!requirements.hasSpecialChar) feedback.push('Must include a special character');
-
-    // Calculate score based on met requirements
-    const metRequirements = Object.values(requirements).filter(Boolean).length;
-    const score = Math.min(4, Math.floor(metRequirements * 0.8));
-
-    return {
-      score,
-      requirements,
-      feedback
-    };
-  }
-
   static validatePassword(password: string): ValidationResult {
-    const { feedback, score } = this.checkPasswordStrength(password);
-    
+    const errors: string[] = [];
+
+    if (!password) {
+      errors.push('Password is required');
+    } else {
+      if (password.length < 8) {
+        errors.push('Password must be at least 8 characters');
+      }
+      if (!/[A-Z]/.test(password)) {
+        errors.push('Password must contain one uppercase letter');
+      }
+      if (!/[a-z]/.test(password)) {
+        errors.push('Password must contain one lowercase letter');
+      }
+      if (!/[0-9]/.test(password)) {
+        errors.push('Password must contain one number');
+      }
+      if (!/[!@#$%^&*]/.test(password)) {
+        errors.push('Password must contain one special character (!@#$%^&*)');
+      }
+    }
+
     return {
-      isValid: score >= 3,
-      errors: feedback
+      isValid: errors.length === 0,
+      errors
     };
   }
 
   static validatePasswordConfirmation(password: string, confirmation: string): ValidationResult {
+    const errors: string[] = [];
+
+    if (!confirmation) {
+      errors.push('Please confirm your password');
+    } else if (password !== confirmation) {
+      errors.push('Passwords do not match');
+    }
+
     return {
-      isValid: password === confirmation,
-      errors: password !== confirmation ? ['Passwords do not match'] : []
+      isValid: errors.length === 0,
+      errors
     };
   }
 
   static validateTermsAcceptance(accepted: boolean): ValidationResult {
     return {
       isValid: accepted,
-      errors: !accepted ? ['You must accept the terms and conditions'] : []
+      errors: accepted ? [] : ['You must accept the terms and conditions']
     };
+  }
+
+  static validateForm<T extends Record<string, any>>(
+    data: T,
+    validations: {
+      [K in keyof T]?: (value: T[K]) => ValidationResult;
+    }
+  ): ValidationResult {
+    const errors: string[] = [];
+
+    Object.entries(validations).forEach(([field, validate]) => {
+      if (validate) {
+        const result = validate(data[field]);
+        if (!result.isValid) {
+          errors.push(...result.errors.map(error => `${field}: ${error}`));
+        }
+      }
+    });
+
+    const isValid = errors.length === 0;
+    if (!isValid) {
+      logger.warn('Form validation failed', { errors });
+    }
+
+    return {
+      isValid,
+      errors
+    };
+  }
+
+  static checkPasswordStrength(password: string): { score: number; feedback: string[] } {
+    const feedback: string[] = [];
+    let score = 0;
+
+    // Length
+    if (password.length >= 12) score += 2;
+    else if (password.length >= 8) score += 1;
+    else feedback.push('Consider using a longer password');
+
+    // Character types
+    if (/[A-Z]/.test(password)) score += 1;
+    else feedback.push('Add uppercase letters');
+    
+    if (/[a-z]/.test(password)) score += 1;
+    else feedback.push('Add lowercase letters');
+    
+    if (/[0-9]/.test(password)) score += 1;
+    else feedback.push('Add numbers');
+    
+    if (/[!@#$%^&*]/.test(password)) score += 1;
+    else feedback.push('Add special characters');
+
+    // Common patterns
+    if (/(.)\1{2,}/.test(password)) {
+      score -= 1;
+      feedback.push('Avoid repeated characters');
+    }
+
+    if (/^(?:abc|123|qwerty|password)/i.test(password)) {
+      score -= 1;
+      feedback.push('Avoid common patterns');
+    }
+
+    return {
+      score: Math.max(0, Math.min(5, score)),
+      feedback
+    };
+  }
+
+  static validate<T>(value: T, validator: (value: T) => ValidationResult): T {
+    const result = validator(value);
+    if (!result.isValid) {
+      throw new ValidationError(result.errors.join(', '));
+    }
+    return value;
   }
 }

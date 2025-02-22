@@ -1,21 +1,28 @@
 import { logger } from './logger';
 import { BaseError, NetworkError, RateLimitError } from './errors';
+import { CacheSystem } from './cache';
 
 interface RetryConfig {
   maxAttempts: number;
   initialDelay: number;
   maxDelay?: number;
   backoffFactor?: number;
+  useCache?: boolean;
+  cacheTTL?: number;
 }
 
 const defaultConfig: RetryConfig = {
   maxAttempts: 3,
   initialDelay: 1000,
   maxDelay: 10000,
-  backoffFactor: 2
+  backoffFactor: 2,
+  useCache: true,
+  cacheTTL: 5 * 60 * 1000 // 5 minutes
 };
 
 export class RecoverySystem {
+  private static cache = new CacheSystem();
+
   static async withRetry<T>(
     operation: () => Promise<T>,
     config: Partial<RetryConfig> = {}
@@ -23,14 +30,39 @@ export class RecoverySystem {
     const fullConfig = { ...defaultConfig, ...config };
     let attempt = 0;
     let delay = fullConfig.initialDelay;
+    const cacheKey = operation.toString();
+
+    // Try to get from cache first if using cache
+    if (fullConfig.useCache) {
+      const cached = await this.cache.get<T>(cacheKey);
+      if (cached) {
+        logger.debug('Using cached data', { cacheKey });
+        return cached;
+      }
+    }
 
     while (attempt < fullConfig.maxAttempts) {
       try {
-        return await operation();
+        const result = await operation();
+        
+        // Cache successful result if using cache
+        if (fullConfig.useCache) {
+          await this.cache.set(cacheKey, result, fullConfig.cacheTTL);
+        }
+        
+        return result;
       } catch (error) {
         attempt++;
         
         if (attempt === fullConfig.maxAttempts) {
+          // On final attempt failure, try to return cached data even if expired
+          if (fullConfig.useCache) {
+            const cached = await this.cache.get<T>(cacheKey);
+            if (cached) {
+              logger.warn('Using expired cached data after all retries failed', { cacheKey });
+              return cached;
+            }
+          }
           throw error;
         }
 
@@ -74,6 +106,10 @@ export class RecoverySystem {
     } else if (error instanceof RateLimitError) {
       await this.handleRateLimitError(error);
     }
+  }
+
+  static async clearCache(): Promise<void> {
+    await this.cache.clear();
   }
 
   private static async handleNetworkError(error: NetworkError): Promise<void> {

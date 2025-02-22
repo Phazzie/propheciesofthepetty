@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { logger } from '../../lib/logger';
 
@@ -46,34 +46,36 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               Something went wrong
             </h1>
             <p className="text-gray-600 mb-6">
-            <button
-              onClick={() => {
-                if (this.props.onReset) {
-                  this.props.onReset();
-                } else {
-                  window.location.reload();
-                }
-              }}
-              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-              aria-label="Refresh the page"
-            >
-              Try Again
-            </button>
-            <button
-              onClick={() => {
-                if (this.props.onBack) {
-                  this.props.onBack();
-                } else {
-                  window.history.back();
-                }
-              }}
-              className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors ml-4"
-              aria-label="Go back"
-            >
-              Go Back
-            </button>
-              Refresh Page
-            </button>
+              We encountered an unexpected error. Please try refreshing the page or go back.
+            </p>
+            <div>
+              <button
+                onClick={() => {
+                  if (this.props.onReset) {
+                    this.props.onReset();
+                  } else {
+                    window.location.reload();
+                  }
+                }}
+                className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                aria-label="Refresh the page"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => {
+                  if (this.props.onBack) {
+                    this.props.onBack();
+                  } else {
+                    window.history.back();
+                  }
+                }}
+                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors ml-4"
+                aria-label="Go back"
+              >
+                Go Back
+              </button>
+            </div>
           </div>
         </div>
       );

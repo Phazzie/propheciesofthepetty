@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 const testDir = 'src/components/__tests__';
-const testFiles = fs.readdirSync(testDir).flatMap(dir => fs.readdirSync(`${testDir}/${dir}`));
+const testFiles = fs.readdirSync(testDir).flatMap((dir: string) => fs.readdirSync(`${testDir}/${dir}`));
 const totalTests = testFiles.length;
 
 const results = {
@@ -22,7 +22,7 @@ console.log(`Additional Tests Needed: ${additionalTestsNeeded}`);
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { LoginForm } from '../LoginForm';
+import { LoginForm } from '../../components/auth/LoginForm';
 import { AuthContext } from '../../../context/AuthContext';
 import '@testing-library/jest-dom';
 
@@ -53,6 +53,12 @@ describe('LoginForm', () => {
       login: mockLogin,
       loading: false,
       error: null,
+      register: jest.fn() as any,
+      logout: jest.fn() as any,
+      requestPasswordReset: jest.fn() as any,
+      refreshSession: jest.fn() as any,
+      user: null,
+      session: null,
       ...authContextValue
     };
 

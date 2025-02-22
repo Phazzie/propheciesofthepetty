@@ -1,6 +1,11 @@
 import { useState, useCallback } from 'react';
-import { readingOperations, cardOperations } from '../lib/database';
-import type { User } from '@supabase/supabase-js';
+import { RecoverySystem } from '../lib/recovery';
+import { NetworkError, DatabaseError } from '../lib/errors';
+import { Database } from '../lib/database';
+import { logger } from '../lib/logger';
+import type { Reading, CardInReading } from '../lib/database.types';
+
+const db = new Database();
 
 export function useCards() {
   const [loading, setLoading] = useState(false);
@@ -31,16 +36,25 @@ export function useReadings() {
     userId: string,
     spreadType: string,
     interpretation: string,
-    cards: { cardId: string; position: number; isReversed: boolean }[]
+    cards: CardInReading[]
   ) => {
     setLoading(true);
     setError(null);
+
     try {
-      const readingId = await readingOperations.saveReading(userId, spreadType, interpretation, cards);
-      return readingId;
+      return await RecoverySystem.withRetry(async () => {
+        const readingId = await db.saveReading(userId, spreadType, interpretation, cards);
+        logger.info('Reading saved successfully', { readingId });
+        return readingId;
+      }, {
+        maxAttempts: 3,
+        initialDelay: 1000
+      });
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to save reading'));
-      throw err;
+      const error = err instanceof Error ? err : new Error('Failed to save reading');
+      setError(error);
+      logger.error('Failed to save reading', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -49,12 +63,21 @@ export function useReadings() {
   const getReading = useCallback(async (readingId: string) => {
     setLoading(true);
     setError(null);
+
     try {
-      const reading = await readingOperations.getReading(readingId);
-      return reading;
+      return await RecoverySystem.withRetry(async () => {
+        const reading = await db.getReading(readingId);
+        logger.debug('Reading fetched successfully', { readingId });
+        return reading;
+      }, {
+        maxAttempts: 2,
+        initialDelay: 500
+      });
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch reading'));
-      throw err;
+      const error = err instanceof Error ? err : new Error('Failed to fetch reading');
+      setError(error);
+      logger.error('Failed to fetch reading', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -63,16 +86,40 @@ export function useReadings() {
   const getUserReadings = useCallback(async (userId: string) => {
     setLoading(true);
     setError(null);
+
     try {
-      const readings = await readingOperations.getUserReadings(userId);
-      return readings;
+      return await RecoverySystem.withRetry(async () => {
+        const readings = await db.getUserReadings(userId);
+        logger.debug('User readings fetched successfully', { 
+          userId, 
+          count: readings.length 
+        });
+        return readings;
+      }, {
+        maxAttempts: 3,
+        initialDelay: 1000
+      });
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch user readings'));
-      throw err;
+      if (err instanceof NetworkError || err instanceof DatabaseError) {
+        const error = err;
+        setError(error);
+        logger.error('Failed to fetch user readings', error);
+        throw error;
+      }
+      const error = new Error('Failed to fetch user readings');
+      setError(error);
+      logger.error('Failed to fetch user readings', error);
+      throw error;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  return { saveReading, getReading, getUserReadings, loading, error };
+  return {
+    loading,
+    error,
+    saveReading,
+    getReading,
+    getUserReadings
+  };
 }

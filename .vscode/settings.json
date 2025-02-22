@@ -1,66 +1,11 @@
-// # Passive-Aggressive Tarot System: Architecture of Unwavering Quality (*For Your Own Good*)
 {
-  // CORE MANDATES (Non-Negotiable - *We expect nothing less*)
-  "editor.formatOnSave": true, // Because we care about consistency... deeply
-  "editor.defaultFormatter": "esbenp.prettier-vscode", // There's really only one way to format code properly
-  "typescript.tsdk": "node_modules/typescript/lib", // We trust you'll use this correctly
-  "typescript.enablePromptUseWorkspaceTsdk": true, // It's really for the best
-
-  // TypeScript Configuration (*To prevent... misunderstandings later*)
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode", // Consistency is key, as we've discussed
-    "editor.formatOnSave": true, // Because we care about your code... and your colleagues
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true // We're just looking out for you
-    }
-  },
-
-  // React Configuration (*So we can all be on the same page*)
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode", // There's a right way to do things
-    "editor.formatOnSave": true, // Trust us on this one
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true // For everyone's benefit, really
-    }
-  },
-
-  // Testing Configuration (*Just in case... things go slightly awry*)
-  "jest.autoRun": {
-    "watch": false, // We trust you'll run tests manually... won't you?
-    "onSave": false // You ARE running tests, right?
-  },
-
-  // Styling Configuration (*For a smoother, more... pleasant experience*)
-  "files.associations": {
-    "*.css": "tailwindcss" // Because consistency matters... always
-  },
-
-  // Tailwind Configuration (*Naturally...*)
-  "tailwindCSS.experimental.classRegex": [
-    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"] // We've optimized this for you
-  ],
-  "tailwindCSS.includeLanguages": {
-    "typescript": "javascript", // For your convenience, of course
-    "typescriptreact": "javascript" // We know what's best
-  },
-
-  // Copilot Configuration (*It's really quite helpful*)
-  "github.copilot.chat.languageContext.typescript.enabled": true, // We're here to help
-  "github.copilot.nextEditSuggestions.enabled": true, // Because we care about your productivity
-  "github.copilot.chat.generateTests.codeLens": true, // You will write tests, won't you?
-
-  // Performance Optimization (*For... optimal performance*)
-  "editor.suggest.shareSuggestSelections": true, // We remember what you choose... always
-  "editor.acceptSuggestionOnCommitCharacter": true, // Just trying to save you time
-  "editor.suggestSelection": "first", // We know what you need
-  
-  // Error Prevention (*Just being thorough*)
-  "typescript.surveys.enabled": false, // We'll handle the feedback, thank you
-  "typescript.validate.enable": true, // Because we care about quality... deeply
-  "typescript.preferences.quoteStyle": "single", // There's only one right way
-  
-  // Project Success Tracking (*So we can all see the progress*)
-  "git.enableSmartCommit": true, // We trust you'll write meaningful commits
-  "git.confirmSync": false, // You were going to sync anyway, right?
-  "git.autofetch": true // Keeping everyone in sync... as they should be
+  "security.workspace.trust.untrustedFiles": "open",
+  "github.copilot.chat.editor.temporalContext.enabled": true,
+  "github.copilot.chat.enableUserPreferences": true,
+  "github.copilot.chat.generateTests.codeLens": true,
+  "github.copilot.chat.languageContext.typescript.enabled": true,
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "github.copilot.chat.commitMessageGeneration.instructions":,
+  "github.copilot.chat.reviewSelection.instructions":,
+  "github.copilot.chat.customInstructions": "## Passive-Aggressive Tarot Card Reading System Project Guidelines\n\nThese guidelines ensure high-quality, maintainable code for our Tarot card reading system. Adhere to these principles when generating code:\n\n**I. Core Principles**\n\n* **Atomic Features:** Deliver complete, tested, and deployable units of code. Break down large features into smaller, independent components.\n* **Test-Driven Development (TDD):** Write tests before code, aiming for 85% or higher meaningful test coverage. Focus on critical paths and edge cases.\n* **Strict TypeScript:** Enforce type safety by avoiding the 'any' type and preventing circular dependencies.\n* **Performance:** Optimize for speed, particularly in user-facing components. Target render times under 100ms in critical areas and ensure efficient data access.\n* **Error Handling:** Implement robust error handling with clear user messages and detailed logs for debugging.\n* **Accessibility:** Adhere to WCAG AA accessibility standards to ensure inclusivity for all users.\n\n**II. Workflow**\n\n* **Daily Review:** Before starting work, review project status files (e.g., `TEST_STATUS.md`, `BLOCKERS.md`, `ROADMAP.md`) to prioritize tasks and identify potential roadblocks.\n* **TDD Implementation:** Follow a strict TDD process: write tests, implement code, handle errors, and document.\n* **Validation:** Before committing code, ensure all tests pass, performance targets are met, and type checking is successful.\n* **Continuous Monitoring:** Regularly track performance metrics, error rates, and test coverage. Address any regressions immediately.\n\n**III. Focus Areas**\n\n* **Reading System:**\n    * **Shade Level™ (0-100 Scale):** Implement thorough testing for the Shade Level™ feature, including exhaustive edge case testing with documented tests.\n    * **Score Normalization (0-100):** Ensure consistent scoring across all card types through rigorous validation.\n    * **Card Render Performance:** Optimize card rendering to achieve a target of <100ms. Utilize benchmarks and monitoring to track performance.\n* **Authentication System:**\n    * **Integration Tests:** Implement comprehensive integration tests with a focus on security aspects.\n    * **Error Handling and Logging:** Prioritize robust error handling and detailed security logging for enhanced debuggability.\n* **UI Components:**\n    * **Loading and Error States:** Implement loading and error states for every component to provide a consistent user experience.\n    * **Accessibility:** Design components with accessibility in mind, adhering to WCAG AA standards. Document accessibility considerations for each component.\n    * **Performance Optimization:** Optimize the performance of all UI components through proactive profiling and optimization techniques.\n* **Documentation:**\n    * **Living Documentation:** Maintain up-to-date and comprehensive documentation, including inline code comments, type definitions, test descriptions, architectural overviews, and performance details.\n\n**IV. Success Metrics**\n\n* **Technical Quality:** Achieve high test coverage (85%+), eliminate flaky tests, and maintain 100% type safety.\n* **Performance:** Meet performance targets, particularly for card rendering (<100ms) and data access efficiency.\n* **Completion:** Deliver consistently atomic features with comprehensive error handling and up-to-date documentation."
 }

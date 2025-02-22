@@ -1,11 +1,18 @@
 import fs from 'fs';
 import path from 'path';
-
+``
 interface TestStatus {
   coverage: number;
   failedTests: string[];
   flakyTests: string[];
   lastRun: Date;
+}
+
+// Generate status update for the roadmap
+function generateStatusUpdate(suite: string, report: any): string {
+    return `- Suite: ${suite}
+- Last Run: ${report.timestamp}
+- Results: ${report.results.length} tests run`;
 }
 
 interface BlockerUpdate {
@@ -135,14 +142,15 @@ function generateTestReport(suite: string) {
 // Keep project roadmap in sync with test status
 function updateRoadmap(suite: string, report: any) {
     const roadmapPath = './project_roadmap.md';
-    let content = fs.readFileSync(roadmapPath, 'utf8');
-    
-    // Update test status in roadmap
     const statusMarker = `### ${suite}`;
+    let content = fs.readFileSync(roadmapPath, 'utf8');
     if (content.includes(statusMarker)) {
         const [before, section] = content.split(statusMarker);
         const [_, after] = section.split('\n\n');
-        content = `${before}${statusMarker}\n${generateStatusUpdate(report)}\n\n${after}`;
-        fs.writeFileSync(roadmapPath, content);
+        content = `${before}${statusMarker}\n${generateStatusUpdate(suite, report)}\n\n${after}`;
+    } else {
+        const [before, after] = content.split('## Technical Blockers');
+        content = `${before}## Technical Blockers\n\n${statusMarker}\n${generateStatusUpdate(suite, report)}\n\n${after}`;
     }
-}
+    fs.writeFileSync(roadmapPath, content);
+    }
