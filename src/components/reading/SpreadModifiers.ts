@@ -44,3 +44,27 @@ export const SPREAD_MODIFIERS: Record<SpreadType, SpreadModifier> = {
     }
   }
 };
+
+// Added implementation of applySpreadModifiers
+export function applySpreadModifiers(scores: any, spreadType: string) {
+  const modified = { ...scores };
+  // Apply thematic bonuses based on spread type
+  if (spreadType === 'celtic-cross') {
+    // For example, apply a 10% bonus on humor
+    modified.humor = Math.min(Math.round(scores.humor * 1.1), 100);
+    // Also bonus for shadeIndex if exists
+    if (scores.shadeIndex) {
+      const newShade = {};
+      for (const key in scores.shadeIndex) {
+        newShade[key] = Math.min(Math.round(scores.shadeIndex[key] * 1.1), 100);
+      }
+      modified.shadeIndex = newShade;
+    }
+  } else if (spreadType === 'classic') {
+    // No bonus for classic; ensure scores remain the same
+    modified.humor = scores.humor;
+  } else {
+    // Default: no modifications
+  }
+  return modified;
+}

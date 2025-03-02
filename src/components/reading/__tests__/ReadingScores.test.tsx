@@ -3,14 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { ThemeProvider } from '../../../contexts/ThemeContext';
 import { ReadingScores } from '../ReadingScores';
 import { SpreadType } from '../../../types';
-
-interface ShadeIndex {
-    plausibleDeniability: number;
-    guiltTripIntensity: number;
-    emotionalManipulation: number;
-    backhandedCompliments: number;
-    strategicVagueness: number;
-}
+import type { ShadeIndex } from '../../types';
 
 interface ScoreOverrides {
     subtlety?: number;

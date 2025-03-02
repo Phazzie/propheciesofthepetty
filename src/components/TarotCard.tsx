@@ -1,5 +1,6 @@
 import { type FC } from 'react';
 import { Card } from '../types';
+import React from 'react';
 
 interface TarotCardProps {
   card: Card;
@@ -16,6 +17,15 @@ export const TarotCard: FC<TarotCardProps> = ({
   onClick,
   disabled = false 
 }) => {
+  // If not revealed, show card back
+  if (!isRevealed) {
+    return (
+      <div data-testid="card-back" className="w-full h-full bg-gray-300 rounded-lg flex items-center justify-center">
+        <span className="text-lg font-bold">Card Back</span>
+      </div>
+    );
+  }
+
   return (
     <div 
       onClick={!disabled && onClick ? onClick : undefined}

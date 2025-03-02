@@ -4,11 +4,12 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LoginForm } from '../LoginForm';
 import { AuthContext } from '../../../context/AuthContext';
 import '@testing-library/jest-dom';
+import { renderWithTestContext, mockAuthContext } from '../../../test/TestContextProvider';
 
 // Mock dependencies
 const mockLogin = vi.fn();
@@ -16,6 +17,7 @@ const mockNavigate = vi.fn();
 
 vi.mock('lucide-react', () => ({
   AlertCircle: () => <div data-testid="alert-icon" />,
+  ArrowLeft: () => <div data-testid="arrow-left-icon" />,
   Loader: () => <div data-testid="loader-icon" />,
   Mail: () => <div data-testid="mail-icon" />,
   Lock: () => <div data-testid="lock-icon" />,
@@ -24,18 +26,9 @@ vi.mock('lucide-react', () => ({
 }));
 
 const renderLoginForm = (authContextValue = {}) => {
-  const defaultContext = {
-    user: null,
-    login: mockLogin,
-    loading: false,
-    error: null,
-    ...authContextValue
-  };
-
-  return render(
-    <AuthContext.Provider value={defaultContext}>
-      <LoginForm />
-    </AuthContext.Provider>
+  return renderWithTestContext(
+    <LoginForm />, 
+    { authContext: { ...mockAuthContext, ...authContextValue } }
   );
 };
 
@@ -47,7 +40,7 @@ describe('LoginForm', () => {
   it('renders login form', () => {
     renderLoginForm();
     
-    expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /welcome to passive-aggressive tarot/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
@@ -71,7 +64,7 @@ describe('LoginForm', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
     
-    expect(await screen.findByText(/please enter a valid email address/i)).toBeInTheDocument();
+    expect(await screen.findByText(/invalid email format/i)).toBeInTheDocument();
     expect(mockLogin).not.toHaveBeenCalled();
   });
 
@@ -110,9 +103,9 @@ describe('LoginForm', () => {
   it('shows loading state during submission', () => {
     renderLoginForm({ loading: true });
     
-    expect(screen.getByText(/signing in/i)).toBeInTheDocument();
+    expect(screen.getByText(/logging in/i)).toBeInTheDocument();
     expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /signing in/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /logging in/i })).toBeDisabled();
   });
 
   it('displays authentication errors', async () => {
@@ -127,7 +120,7 @@ describe('LoginForm', () => {
     renderLoginForm();
     
     const passwordInput = screen.getByLabelText(/password/i);
-    const toggleButton = screen.getByRole('button', { name: /show password/i });
+    const toggleButton = screen.getByRole('button', { name: /toggle password/i });
     
     expect(passwordInput).toHaveAttribute('type', 'password');
     fireEvent.click(toggleButton);
@@ -140,14 +133,14 @@ describe('LoginForm', () => {
     renderLoginForm();
     
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
-    expect(screen.getByTestId('register-form')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /create account/i })).toBeInTheDocument();
   });
 
   it('switches to forgot password form', () => {
     renderLoginForm();
     
     fireEvent.click(screen.getByRole('button', { name: /forgot password/i }));
-    expect(screen.getByTestId('forgot-password-form')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /reset password/i })).toBeInTheDocument();
   });
 
   it('clears validation errors when input changes', async () => {

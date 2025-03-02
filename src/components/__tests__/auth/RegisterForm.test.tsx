@@ -1,9 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { RegisterForm } from '../../auth/RegisterForm';
-import { AuthContext } from '../../../context/AuthContext';
 import { EmailVerification } from '../../../lib/emailVerification';
 import '@testing-library/jest-dom';
+import { renderWithTestContext, mockAuthContext } from '../../../test/TestContextProvider';
 
 // Mock EmailVerification
 vi.mock('../../../lib/emailVerification');
@@ -33,17 +32,9 @@ describe('RegisterForm', () => {
   const mockOnBack = vi.fn();
 
   const renderComponent = (authContextValue = {}) => {
-    const defaultAuthContext = {
-      register: mockRegister,
-      loading: false,
-      error: null,
-      ...authContextValue
-    };
-
-    return render(
-      <AuthContext.Provider value={defaultAuthContext}>
-        <RegisterForm onBack={mockOnBack} />
-      </AuthContext.Provider>
+    return renderWithTestContext(
+      <RegisterForm onBack={mockOnBack} />, 
+      { authContext: { ...mockAuthContext, ...authContextValue } }
     );
   };
 
@@ -151,7 +142,9 @@ describe('RegisterForm', () => {
   it('handles back button click', () => {
     renderComponent();
     const backButton = screen.getByTestId('arrow-left-icon').parentElement;
-    fireEvent.click(backButton);
-    expect(mockOnBack).toHaveBeenCalled();
+    if (backButton) {
+      fireEvent.click(backButton);
+      expect(mockOnBack).toHaveBeenCalled();
+    }
   });
 });

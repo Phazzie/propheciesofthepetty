@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import type { ReadingInterpretation, EnhancedReadingInterpretation } from '../../types';
+import type { ReadingInterpretation, EnhancedReadingInterpretation, ShadeIndex } from '../../types';
 import { calculateShadeLevel } from '../../lib/ShadeLevels';
 
 // Constants for scoring thresholds and evaluation
@@ -10,17 +10,15 @@ const SHADE_PASSING_THRESHOLD = 7;  // Minimum Level 7 required
 
 // Score multipliers for weighted calculations
 const SCORE_MULTIPLIERS = {
-  humor: 1.2,      // 20% bonus for humor
+  humor: 1.4,      // 40% bonus for humor
   creative: 1.15,  // 15% bonus for creativity
   wisdom: 1.0,     // Base weight
   subtlety: 1.1,   // 10% bonus for subtlety
   relatability: 1.1 // 10% bonus for relatability
 };
 
-const getScoreColor = (score: number, threshold = PASSING_THRESHOLD) => {
-  if (score >= threshold) return 'text-green-600 dark:text-green-400';
-  if (score >= threshold * 0.8) return 'text-yellow-600 dark:text-yellow-400';
-  return 'text-red-600 dark:text-red-400';
+const getScoreColor = (score: number) => {
+  return score >= PASSING_THRESHOLD ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 };
 
 const MetricBar: React.FC<{ value: number }> = ({ value }) => (
@@ -82,7 +80,7 @@ export const ReadingScores: React.FC<Props> = ({ interpretation }) => {
     return <p className="text-gray-500 italic">No reading data available</p>;
   }
 
-  const { scores } = interpretation;
+  const { scores, stages } = interpretation;
   const shadeDetails = calculateShadeLevel(scores.shadeIndex);
   const isPassingCore = CORE_METRICS.every(metric => scores[metric] >= PASSING_THRESHOLD);
   const isPassingShade = shadeDetails.level >= SHADE_PASSING_THRESHOLD;
@@ -106,7 +104,7 @@ export const ReadingScores: React.FC<Props> = ({ interpretation }) => {
           </span>
           <div className="text-right">
             <span className={`text-sm font-medium ${getScoreColor(value)}`}>
-              {weightedValue}/100
+              {weightedValue}/{metric === 'humor' ? 140 : 100}
             </span>
             <span className="text-xs text-gray-500 ml-2">
               (Base: {value}/100)
@@ -138,10 +136,10 @@ export const ReadingScores: React.FC<Props> = ({ interpretation }) => {
       <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <h3 className="font-semibold text-purple-900 dark:text-purple-100">
+            <h3 data-testid="shade-level" className="font-semibold text-purple-900 dark:text-purple-100">
               Shade Level™ {shadeDetails.level}
             </h3>
-            <p className={`text-sm ${shadeDetails.colorClass} mt-1`}>
+            <p data-testid="shade-message" className={`text-sm ${shadeDetails.colorClass} mt-1`}>
               {shadeDetails.title}
             </p>
           </div>
@@ -162,7 +160,7 @@ export const ReadingScores: React.FC<Props> = ({ interpretation }) => {
       </section>
 
       <div className="text-sm text-gray-600 mb-4">
-        <h4 className="font-medium mb-2">Scoring Requirements:</h4>
+        <h4 className="font-medium mb-2">Scoring Guidelines:</h4>
         <ul className="list-disc pl-5 space-y-1">
           <li>Core metrics minimum: {PASSING_THRESHOLD}/100 (currently {CORE_METRICS.filter(m => scores[m] >= PASSING_THRESHOLD).length}/{CORE_METRICS.length} passing)</li>
           <li>Shade Level™ minimum: Level {SHADE_PASSING_THRESHOLD} (currently Level {shadeDetails.level})</li>
@@ -171,6 +169,16 @@ export const ReadingScores: React.FC<Props> = ({ interpretation }) => {
           </li>
         </ul>
       </div>
+
+      {stages && (
+        <div className="space-y-2">
+          {Object.values(stages).map((msg, idx) => (
+            <p key={idx} className="text-sm text-gray-500" data-testid="stage-message">
+              {msg}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

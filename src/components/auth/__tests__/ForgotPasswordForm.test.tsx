@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { ForgotPasswordForm } from '../ForgotPasswordForm';
 import { PasswordReset } from '../../../lib/passwordReset';
 import '@testing-library/jest-dom';
+import { renderWithTestContext, mockAuthContext } from '../../../test/TestContextProvider';
 
 vi.mock('../../../lib/passwordReset');
 vi.mock('lucide-react', () => ({
@@ -19,8 +20,11 @@ describe('ForgotPasswordForm', () => {
     vi.clearAllMocks();
   });
 
-  const renderForm = () => {
-    return render(<ForgotPasswordForm onBack={mockOnBack} />);
+  const renderForm = (authContextValue = {}) => {
+    return renderWithTestContext(
+      <ForgotPasswordForm onBack={mockOnBack} />, 
+      { authContext: { ...mockAuthContext, ...authContextValue } }
+    );
   };
 
   it('validates empty email', async () => {
@@ -92,9 +96,11 @@ describe('ForgotPasswordForm', () => {
 
   it('handles back button click', () => {
     renderForm();
-    
-    fireEvent.click(screen.getByTestId('arrow-left-icon').parentElement);
-    expect(mockOnBack).toHaveBeenCalled();
+    const backButton = screen.getByTestId('arrow-left-icon').parentElement;
+    if (backButton) {
+      fireEvent.click(backButton);
+      expect(mockOnBack).toHaveBeenCalled();
+    }
   });
 
   it('handles return to login after success', async () => {

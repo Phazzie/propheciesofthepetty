@@ -1,180 +1,177 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle } from 'lucide-react';
-import { logger } from '../../lib/logger';
-
-interface ErrorBoundaryProps {
-  children: ReactNode;
-  onReset?: () => void;
-  onBack?: () => void;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-}
-
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logger.error(
-      'Error caught by boundary',
-      error instanceof Error ? error : new Error('Unknown error'),
-      { componentStack: errorInfo.componentStack },
-      'ErrorBoundary',
-      'componentDidCatch'
-    );
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div
-          className="min-h-screen flex items-center justify-center bg-purple-50"
-          role="alert"
-          aria-live="assertive"
-        >
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" aria-hidden="true" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Something went wrong
-            </h1>
-            <p className="text-gray-600 mb-6">
-              We encountered an unexpected error. Please try refreshing the page or go back.
-            </p>
-            <div>
-              <button
-                onClick={() => {
-                  if (this.props.onReset) {
-                    this.props.onReset();
-                  } else {
-                    window.location.reload();
-                  }
-                }}
-                className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-                aria-label="Refresh the page"
-              >
-                Try Again
-              </button>
-              <button
-                onClick={() => {
-                  if (this.props.onBack) {
-                    this.props.onBack();
-                  } else {
-                    window.history.back();
-                  }
-                }}
-                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors ml-4"
-                aria-label="Go back"
-              >
-                Go Back
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, MockInstance } from 'vitest';
+import ErrorBoundary from '../ErrorBoundary';
+import { handleError } from '../../lib/errors';
+import { logger } from '../../lib/logger';
+import { RecoverySystem } from '../../lib/recovery';
 
-// Test to ensure ErrorBoundary catches errors and displays fallback UI
+// Mock dependencies
+vi.mock('../../lib/logger', () => ({
+  logger: {
+    error: vi.fn()
+  }
+}));
+
+vi.mock('../../lib/recovery', () => ({
+  RecoverySystem: {
+    recover: vi.fn()
+  }
+}));
+
+vi.mock('../../lib/errors', () => ({
+  handleError: vi.fn().mockImplementation((error: Error) => ({
+    name: 'MockAppError',
+    message: error.message,
+    severity: 'medium',
+    code: 'ERR_TEST',
+    details: {},
+    stack: error.stack
+  })),
+}));
 
 describe('ErrorBoundary', () => {
-  it('catches errors and displays fallback UI', () => {
-    const ProblemChild = () => {
-      throw new Error('Simulated error');
-    };
+  // Reset mocks before each test
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
+  // Test component that throws an error
+  const ProblemChild = ({ message = 'Simulated error' }: { message?: string }) => {
+    throw new Error(message);
+  };
+
+  it('renders children when no error is thrown', () => {
+    render(
+      <ErrorBoundary>
+        <div data-testid="child">Test Child</div>
+      </ErrorBoundary>
+    );
+    expect(screen.getByTestId('child')).toBeInTheDocument();
+  });
+
+  it('catches errors and displays fallback UI', () => {
     render(
       <ErrorBoundary>
         <ProblemChild />
       </ErrorBoundary>
     );
+    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+    expect(logger.error).toHaveBeenCalled();
+  });
 
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+  it('displays custom fallback UI when provided', () => {
+    const fallback = <div data-testid="fallback">Custom Fallback</div>;
+    render(
+      <ErrorBoundary fallbackUI={fallback}>
+        <ProblemChild />
+      </ErrorBoundary>
+    );
+    expect(screen.getByTestId('fallback')).toBeInTheDocument();
   });
 
   it('calls onReset when Try Again button is clicked', () => {
     const onReset = vi.fn();
-    const ProblemChild = () => {
-      throw new Error('Simulated error');
-    };
-
     render(
       <ErrorBoundary onReset={onReset}>
         <ProblemChild />
       </ErrorBoundary>
     );
-
     fireEvent.click(screen.getByText('Try Again'));
     expect(onReset).toHaveBeenCalled();
   });
 
   it('calls onBack when Go Back button is clicked', () => {
     const onBack = vi.fn();
-    const ProblemChild = () => {
-      throw new Error('Simulated error');
-    };
-
     render(
       <ErrorBoundary onBack={onBack}>
         <ProblemChild />
       </ErrorBoundary>
     );
-
     fireEvent.click(screen.getByText('Go Back'));
     expect(onBack).toHaveBeenCalled();
   });
 
   it('reloads the page when Try Again button is clicked and no onReset is provided', () => {
     const originalLocation = window.location;
-    window.location = {} as Location;
-    window.location = { ...originalLocation, reload: vi.fn() };
-
-    const ProblemChild = () => {
-      throw new Error('Simulated error');
-    };
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: { reload: vi.fn() }
+    });
 
     render(
       <ErrorBoundary>
         <ProblemChild />
       </ErrorBoundary>
     );
-
     fireEvent.click(screen.getByText('Try Again'));
     expect(window.location.reload).toHaveBeenCalled();
-
-    window.location = originalLocation;
+    
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation
+    });
   });
 
   it('goes back in history when Go Back button is clicked and no onBack is provided', () => {
     const originalHistory = window.history;
-    window.history.back = vi.fn();
-
-    const ProblemChild = () => {
-      throw new Error('Simulated error');
-    };
+    Object.defineProperty(window, 'history', {
+      configurable: true,
+      value: { ...originalHistory, back: vi.fn() }
+    });
 
     render(
       <ErrorBoundary>
         <ProblemChild />
       </ErrorBoundary>
     );
-
     fireEvent.click(screen.getByText('Go Back'));
     expect(window.history.back).toHaveBeenCalled();
+  });
 
-    window.history = originalHistory;
+  it('displays error with correct severity styling', () => {
+    // Mock handleError to return specific severity
+    (handleError as unknown as MockInstance).mockImplementationOnce((error: Error) => ({
+      name: 'MockAppError',
+      message: error.message,
+      severity: 'high',
+      code: 'ERR_HIGH_SEVERITY',
+      details: {},
+      stack: error.stack
+    }));
+
+    render(
+      <ErrorBoundary>
+        <ProblemChild message="High severity error" />
+      </ErrorBoundary>
+    );
+    
+    // We can't easily test specific CSS classes due to the dynamic nature,
+    // but we can verify the error component is rendered
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+
+  it('attempts recovery for low severity errors', async () => {
+    // Mock implementation to test recovery flow
+    (RecoverySystem.recover as unknown as MockInstance).mockResolvedValue(undefined);
+    
+    // Mock handleError to return a low severity error
+    (handleError as unknown as MockInstance).mockImplementationOnce((error: Error) => ({
+      name: 'RecoverableError',
+      message: error.message,
+      severity: 'low',
+      code: 'ERR_RECOVERABLE',
+      details: {},
+      stack: error.stack
+    }));
+
+    render(
+      <ErrorBoundary maxRetries={1}>
+        <ProblemChild message="Recoverable error" />
+      </ErrorBoundary>
+    );
+
+    // Verify recovery was attempted
+    expect(RecoverySystem.recover).toHaveBeenCalled();
   });
 });

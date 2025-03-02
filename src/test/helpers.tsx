@@ -1,6 +1,6 @@
 import type { Card, SpreadConfig, SpreadType, ReadingInterpretation, ReadingScore } from '../types';
 import { render } from '@testing-library/react';
-import { ThemeProvider } from '../contexts/ThemeContext';
+import { ThemeProvider } from 'styled-components';
 import type { ReactElement } from 'react';
 
 export interface TestContext {
@@ -71,7 +71,7 @@ export const createMockCard = (position: number = 0): Card & { position: number;
 
 export const renderWithTheme = (ui: ReactElement) => {
   return render(
-    <ThemeProvider>
+    <ThemeProvider theme={{}}>
       {ui}
     </ThemeProvider>
   );

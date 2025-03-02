@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
+import styles from './ReadingLayout.module.css';
 import type { Card, ReadingInterpretation, SpreadType } from '../../types';
 import { ReadingScores } from './ReadingScores';
-import { SPREADS } from './SpreadSelector';
+
+export const CELTIC_CROSS = 'celtic-cross';
+import { SPREADS } from '../../types/spreads';
 import { TarotCard } from '../TarotCard';
 import { HelpCircle } from 'lucide-react';
 import type { ReadingPosition } from './types';
@@ -24,6 +27,18 @@ const getCustomLayoutClass = (totalPositions: number): string => {
   if (totalPositions <= 9) return 'grid-cols-3 grid-rows-3';
   return 'grid-cols-4 grid-rows-3';
 };
+const CELTIC_CROSS_POSITIONS = [
+  { className: 'col-start-2 row-start-2' },               // Present
+  { className: 'col-start-2 row-start-2 rotate-90' },    // Challenge
+  { className: 'col-start-2 row-start-3' },              // Foundation
+  { className: 'col-start-1 row-start-2' },              // Past
+  { className: 'col-start-2 row-start-1' },              // Crown
+  { className: 'col-start-3 row-start-2' },              // Future
+  { className: 'col-start-4 row-start-1' },              // Self
+  { className: 'col-start-4 row-start-2' },              // Environment
+  { className: 'col-start-4 row-start-3' },              // Hopes/Fears
+  { className: 'col-start-4 row-start-4' }               // Outcome
+];
 
 export const ReadingLayout: React.FC<Props> = ({
   spreadType,
@@ -38,8 +53,10 @@ export const ReadingLayout: React.FC<Props> = ({
     if (isCustomSpread && customPositions) {
       return getCustomLayoutClass(customPositions.length);
     }
-    return spreadType === 'celtic-cross' ? 'grid-cols-4 grid-rows-4' : 'grid-cols-3';
+    return spreadType === CELTIC_CROSS ? 'grid-cols-4 grid-rows-4' : 'grid-cols-3';
   };
+
+  const [error, setError] = React.useState<string | null>(null);
 
   const positions = useMemo(() => {
     if (isCustomSpread && customPositions) {
@@ -53,7 +70,7 @@ export const ReadingLayout: React.FC<Props> = ({
     
     const spread = SPREADS.find(s => s.id === spreadType);
     if (!spread) {
-      console.error(`Spread type ${spreadType} not found`);
+      setError(`Spread type ${spreadType} not found`);
       return [];
     }
     
@@ -64,12 +81,20 @@ export const ReadingLayout: React.FC<Props> = ({
       className: spreadType === 'celtic-cross' ? CELTIC_CROSS_POSITIONS[i]?.className || 'col-span-1' : 'col-span-1'
     }));
   }, [spreadType, isCustomSpread, customPositions]);
-
+  if (error) {
+    return (
+      <div className="text-red-500">
+        {error}
+      </div>
+    );
+  }
   if (isLoading) {
+    const numPositions = isCustomSpread ? customPositions?.length || 3 : spreadType === 'celtic-cross' ? 10 : 3;
+
     return (
       <div className="space-y-8 animate-pulse">
-        <div className={`grid gap-4 ${getLayoutClass()}`}>
-          {Array.from({ length: isCustomSpread ? customPositions?.length || 3 : spreadType === 'celtic-cross' ? 10 : 3 }).map((_, i) => (
+        <div data-testid="grid-layout" className={`${styles.gridLayout} ${getLayoutClass()}`}>
+          {Array.from({ length: numPositions }).map((_, i) => (
             <div key={i} className="aspect-[2/3] bg-purple-100 rounded-lg" />
           ))}
         </div>
@@ -78,12 +103,12 @@ export const ReadingLayout: React.FC<Props> = ({
   }
 
   return (
-    <ErrorBoundary fallback={<div className="text-red-500">Error loading reading layout</div>}>
+    <ErrorBoundary fallbackUI={<div className="text-red-500">Error loading reading layout</div>}>
       <div className="space-y-8">
-        <div className={`grid gap-4 ${getLayoutClass()}`}>
+        <div data-testid="grid-layout" className={`grid gap-4 ${getLayoutClass()}`}>
           {positions.map((position, index) => {
             const card = cards[index];
-            return (
+            return useMemo(() => (
               <div key={position.id} className={`relative ${position.className}`}>
                 {card ? (
                   <div className="relative">
@@ -92,11 +117,11 @@ export const ReadingLayout: React.FC<Props> = ({
                       isRevealed={isRevealed}
                       isReversed={card.isReversed}
                     />
-                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                    <div className={styles.positionName}>
                       {position.name}
                     </div>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-full">
-                      <p className="text-xs text-gray-500 italic text-center">
+                    <div className={styles.positionDescription}>
+                      <p>
                         {position.description}
                       </p>
                     </div>
@@ -111,7 +136,7 @@ export const ReadingLayout: React.FC<Props> = ({
                   </div>
                 )}
               </div>
-            );
+            ), [card, isRevealed, position]);
           })}
         </div>
         
@@ -130,16 +155,3 @@ export const ReadingLayout: React.FC<Props> = ({
     </ErrorBoundary>
   );
 };
-
-const CELTIC_CROSS_POSITIONS = [
-  { className: 'col-start-2 row-start-2' },               // Present
-  { className: 'col-start-2 row-start-2 rotate-90' },    // Challenge
-  { className: 'col-start-2 row-start-3' },              // Foundation
-  { className: 'col-start-1 row-start-2' },              // Past
-  { className: 'col-start-2 row-start-1' },              // Crown
-  { className: 'col-start-3 row-start-2' },              // Future
-  { className: 'col-start-4 row-start-1' },              // Self
-  { className: 'col-start-4 row-start-2' },              // Environment
-  { className: 'col-start-4 row-start-3' },              // Hopes/Fears
-  { className: 'col-start-4 row-start-4' }               // Outcome
-];
