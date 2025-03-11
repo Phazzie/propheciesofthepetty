@@ -1,2 +1,5 @@
 {
+    "github.copilot.chat.languageContext.typescript.enabled": true,
+    "github.copilot.chat.completionContext.typescript.mode": "on",
+    "editor.defaultFormatter": "GitHub.copilot-chat"
 }

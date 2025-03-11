@@ -1,19 +1,8 @@
+// Prompt 1: Removed duplicate 'jsx' entries as part of Quick and Easy Fixes
+// (Prompt 1 modifications applied)
+
 {
   "compilerOptions": {
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
-    "jsx": "react",
     "jsx": "react",
     "target": "ES2020",
     "module": "CommonJS",

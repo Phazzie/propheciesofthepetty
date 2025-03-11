@@ -9,10 +9,19 @@ export interface TestContext {
   sessionToken?: string;
 }
 
+/**
+ * Returns a mock reading interpretation object.
+ * @returns {ReadingInterpretation} A mock reading interpretation.
+ */
 export const createMockInterpretation = (): ReadingInterpretation => ({
   text: "Your passive-aggressive reading reveals hidden tensions in your situation. While you might think everything is fine on the surface, the cards suggest otherwise. Perhaps if you'd been paying more attention earlier, you wouldn't be in this position now. Just a thought."
 });
 
+/**
+ * Returns a mock spread configuration based on the provided type.
+ * @param {SpreadType} [type='past-present-future'] - The type of the spread.
+ * @returns {SpreadConfig} A mock spread configuration.
+ */
 export const createMockSpread = (type: SpreadType = 'past-present-future'): SpreadConfig => ({
   id: type,
   name: type === 'past-present-future' ? 'Past, Present, Future' : 'Test Spread',
@@ -31,6 +40,11 @@ export const createMockSpread = (type: SpreadType = 'past-present-future'): Spre
       ]
 });
 
+/**
+ * Returns a mock card object with a specified position.
+ * @param {number} [position=0] - The position index for the card.
+ * @returns {Card & { position: number; isReversed: boolean }} A mock card object.
+ */
 export const createMockCard = (position: number = 0): Card & { position: number; isReversed: boolean } => ({
   id: `test-card-${position}`,
   name: `Test Card ${position}`,
@@ -41,6 +55,11 @@ export const createMockCard = (position: number = 0): Card & { position: number;
   isReversed: false
 });
 
+/**
+ * Renders a given React element wrapped with a ThemeProvider for consistent theming in tests.
+ * @param {ReactElement} ui - The React element to render.
+ * @returns {RenderResult} The result of the render.
+ */
 export const renderWithTheme = (ui: ReactElement) => {
   return render(
     <ThemeProvider theme={{}}>
@@ -49,6 +68,12 @@ export const renderWithTheme = (ui: ReactElement) => {
   );
 };
 
+/**
+ * Creates and returns mock reading props for testing components that expect reading data.
+ * @param {SpreadType} [type='past-present-future'] - The type of reading spread.
+ * @param {number} [cardCount=3] - The number of cards to generate.
+ * @returns {object} Mock reading props object.
+ */
 export const createMockReadingProps = (type: SpreadType = 'past-present-future', cardCount: number = 3) => ({
   spreadType: type,
   cards: Array(cardCount).fill(0).map((_, i) => createMockCard(i)),
