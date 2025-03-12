@@ -12,7 +12,7 @@
 
 export type SubscriptionType = 'free' | 'major_arcana' | 'full_deck';
 
-export type SpreadType = 'past-present-future' | 'celtic-cross' | 'three-card';
+export type SpreadType = 'past-present-future' | 'celtic-cross' | 'im-fine' | 'just-saying' | 'whatever' | 'no-offense';
 
 export type ThematicCategory = 'humor' | 'snark' | 'culturalResonance' | 'metaphorMastery';
 

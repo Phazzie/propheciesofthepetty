@@ -1,5 +1,5 @@
-import React, { Component, ErrorInfo, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import React, { Component, ErrorInfo, useState } from 'react';
 import { logger } from '../lib/logger';
 
 interface ErrorBoundaryProps {
@@ -43,16 +43,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-    // Update state so the next render shows the fallback UI.
-    return { hasError: true, error };
+    // Ensure that error is non-null by using the provided error or a fallback
+    return { hasError: true, error: error || new Error('An unknown error occurred') };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error and error information.
-    logger.error('ErrorBoundary caught an error:', { error, errorInfo });
-    logger.error('ErrorBoundary caught an error:', { error, errorInfo });
-    
-    // Update state with error info
+    logger.error('ErrorBoundary caught an error:', error);
+    logger.error('ErrorBoundary caught error information:', error, errorInfo);
     
     // Call onError callback if provided
     if (this.props.onError) {

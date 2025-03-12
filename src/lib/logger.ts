@@ -12,10 +12,11 @@ interface LogEntry {
   error?: Error;
   component?: string;
   action?: string;
+  args?: any[]; // Added property to support additional arguments in log entries
 }
 
 class Logger {
-  private isDevelopment = import.meta.env.DEV;
+  private isDevelopment = process.env.NODE_ENV === 'development';
   private sessionId = crypto.randomUUID();
   private logBuffer: LogEntry[] = [];
 
@@ -57,20 +58,34 @@ class Logger {
     }
   }
 
-  private async sendToLogService(entry: LogEntry) {
+  private async sendToLogService(_entry: LogEntry) {
     // Implementation for sending logs to a service in production
     // This is a placeholder for future implementation
   }
 
   log(level: LogLevel, message: string, ...args: any[]) {
-    const logEntry = {
+    const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
       message,
       args
     };
     this.logBuffer.push(logEntry);
-    console[level](message, ...args);
+    // Instead of using console[level] which might cause type issues, use a switch case
+    switch (level) {
+      case 'debug':
+        console.debug(message, ...args);
+        break;
+      case 'info':
+        console.info(message, ...args);
+        break;
+      case 'warn':
+        console.warn(message, ...args);
+        break;
+      case 'error':
+        console.error(message, ...args);
+        break;
+    }
   }
 
   debug(message: string, details?: unknown, component?: string, action?: string) {

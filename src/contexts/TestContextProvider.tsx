@@ -1,11 +1,33 @@
-import React, { ReactNode, useState } from 'react';
-import { ThemeProvider } from './ThemeContext';
-import { AuthProvider } from '../context/AuthContext';
-import { ReadingProvider } from '../context/ReadingProvider';
-import { createMockCard, createMockInterpretation } from '../test/helpers';
-import type { Card, SpreadType, ReadingInterpretation } from '../types';
-import { render } from '@testing-library/react';
-import { vi } from 'vitest'; // Explicit import for testing utilities
+import { render, RenderResult } from '@testing-library/react';
+import React, { createContext, ReactNode, useContext, useState } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import type { Card, ReadingInterpretation, SpreadType, SubscriptionType } from '../types';
+
+// Mock Reading Context
+interface ReadingContextType {
+  cards: Card[];
+  spreadType: SpreadType | null;
+  interpretation: ReadingInterpretation | null;
+  isRevealed: boolean;
+  isLoading: boolean;
+  error: string | null;
+  setCards: (cards: Card[]) => void;
+  setSpreadType: (type: SpreadType | null) => void;
+  setInterpretation: (interpretation: ReadingInterpretation | null) => void;
+  setIsRevealed: (isRevealed: boolean) => void;
+  setIsLoading: (isLoading: boolean) => void;
+  setError: (error: string | null) => void;
+}
+
+const ReadingContext = createContext<ReadingContextType | null>(null);
+
+export const useReadingContext = () => {
+  const context = useContext(ReadingContext);
+  if (!context) {
+    throw new Error('useReadingContext must be used within a ReadingProvider');
+  }
+  return context;
+};
 
 interface TestContextProviderProps {
   children: ReactNode;
@@ -27,104 +49,79 @@ interface TestContextProviderProps {
     isLoading?: boolean;
     error?: string | null;
   };
-  mockThemeValues?: {
-    isDarkMode?: boolean;
-    isPurpleMode?: boolean;
-  };
 }
 
-/**
- * A centralized provider for test contexts that wraps all application contexts
- * with customizable mock values for testing purposes.
- * 
- * It separates initialization of default mock values for Auth, Reading, and Theme contexts
- * and includes explicit comments on the purpose of each section along with proper testing utility imports.
- * 
- * @param props - Configuration options including mock values for auth, reading, and theme contexts
- * @returns Provider component with all necessary context for testing
- */
+const MockReadingProvider: React.FC<{ children: ReactNode; initialValues?: TestContextProviderProps['mockReadingValues'] }> = ({
+  children,
+  initialValues = {}
+}) => {
+  const [cards, setCards] = useState<Card[]>(initialValues.cards || []);
+  const [spreadType, setSpreadType] = useState<SpreadType | null>(initialValues.spreadType || null);
+  const [interpretation, setInterpretation] = useState<ReadingInterpretation | null>(initialValues.interpretation || null);
+  const [isRevealed, setIsRevealed] = useState(initialValues.isRevealed || false);
+  const [isLoading, setIsLoading] = useState(initialValues.isLoading || false);
+  const [error, setError] = useState<string | null>(initialValues.error || null);
+
+  const value: ReadingContextType = {
+    cards,
+    spreadType,
+    interpretation,
+    isRevealed,
+    isLoading,
+    error,
+    setCards,
+    setSpreadType,
+    setInterpretation,
+    setIsRevealed,
+    setIsLoading,
+    setError
+  };
+
+  return (
+    <ReadingContext.Provider value={value}>
+      {children}
+    </ReadingContext.Provider>
+  );
+};
+
 export const TestContextProvider: React.FC<TestContextProviderProps> = ({ 
   children, 
   mockAuthValues = {},
-  mockReadingValues = {},
-  mockThemeValues = {}
+  mockReadingValues = {}
 }) => {
-
-  // ----- Auth Context Initialization -----
-  // Initialize default mock values for authentication. Merges default values with any overrides provided in mockAuthValues.
-  const defaultAuthMock = {
-    isAuthenticated: true,
-    user: {
-      id: 'test-user-id',
-      email: 'test@example.com',
-      username: 'testuser'
-    },
-    loading: false,
-    error: null,
-    login: vi.fn().mockResolvedValue({}),
-    register: vi.fn().mockResolvedValue({}),
-    logout: vi.fn().mockResolvedValue({}),
-    resetPassword: vi.fn().mockResolvedValue({}),
-    updateProfile: vi.fn().mockResolvedValue({}),
-    ...mockAuthValues
+  // Auth context setup
+  const authContextValue = {
+    user: mockAuthValues.user ? {
+      ...mockAuthValues.user,
+      subscriptionType: 'free' as SubscriptionType
+    } : null,
+    loading: mockAuthValues.loading || false,
+    error: mockAuthValues.error || null,
+    login: async () => {},
+    register: async () => {},
+    logout: async () => {},
+    requestPasswordReset: async () => {}
   };
-
-  // ----- Reading Context Initialization -----
-  // Initialize default mock values for reading functionality. Merges default values with any overrides provided in mockReadingValues.
-  const defaultReadingMock = {
-    cards: Array(3).fill(0).map((_, i) => createMockCard(i)),
-    spreadType: 'past-present-future' as SpreadType,
-    interpretation: createMockInterpretation(),
-    isRevealed: true,
-    isLoading: false,
-    error: null,
-    selectSpread: vi.fn(),
-    drawCards: vi.fn().mockResolvedValue([]),
-    revealCards: vi.fn(),
-    resetReading: vi.fn(),
-    ...mockReadingValues
-  };
-
-  // ----- Theme Context Initialization -----
-  // Initialize theme-related state with provided mock values for dark and purple modes.
-  const [isDarkMode, setIsDarkMode] = useState(mockThemeValues?.isDarkMode || false);
-  const [isPurpleMode, setIsPurpleMode] = useState(mockThemeValues?.isPurpleMode ?? true);
-
-  // Define theme context value with toggle functions
-  const themeContextValue = {
-    isDarkMode,
-    isPurpleMode,
-    toggleDarkMode: () => setIsDarkMode(prev => !prev),
-    togglePurpleMode: () => setIsPurpleMode(prev => !prev)
-  };
-
-  // TODO: Consider adding fallback behaviors or error logging if mock values are misconfigured.
 
   return (
-    // Providing theme context. If ThemeProvider supports a value prop, consider passing themeContextValue.
-    <ThemeProvider initialTheme={isDarkMode ? 'dark' : 'light'}>
-      {/* AuthProvider could be further refactored to accept defaultAuthMock via context if desired */}
-      <AuthProvider>
-        {/* ReadingProvider could similarly be adjusted to accept defaultReadingMock */}
-        <ReadingProvider>
-          {children}
-        </ReadingProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <AuthContext.Provider value={authContextValue}>
+      <MockReadingProvider initialValues={mockReadingValues}>
+        {children}
+      </MockReadingProvider>
+    </AuthContext.Provider>
   );
 };
 
 /**
- * A utility function to render components with all necessary test contexts
- * 
- * @param ui - The component to render
- * @param options - Configuration options including mock values for contexts
- * @returns The rendered component with testing utilities
+ * Renders a component with all necessary test contexts and providers.
+ * @param ui - The React component to render
+ * @param options - Configuration options for mock values in test contexts
+ * @returns The rendered component with all testing utilities from @testing-library/react
  */
 export const renderWithTestContext = (
   ui: React.ReactElement,
   options: Omit<TestContextProviderProps, 'children'> = {}
-) => {
+): RenderResult => {
   return render(
     <TestContextProvider {...options}>
       {ui}

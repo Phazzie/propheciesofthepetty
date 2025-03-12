@@ -1,8 +1,17 @@
-import type { Card, SpreadConfig, SpreadType, ReadingInterpretation } from '../types';
-import { render } from '@testing-library/react';
+import type { Card, SpreadType, ReadingInterpretation } from '../types';
+import { render, RenderResult } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import type { ReactElement } from 'react';
-import React from 'react';
+
+// Define local SpreadConfig type to replace the missing export
+export interface SpreadConfig {
+  id: SpreadType;
+  name: string;
+  description: string;
+  cardCount: number;
+  icon: string;
+  positions: Array<{ name: string; description: string }>;
+}
 
 export interface TestContext {
   userId: string;
@@ -28,16 +37,16 @@ export const createMockSpread = (type: SpreadType = 'past-present-future'): Spre
   description: 'A test spread for validation',
   cardCount: type === 'celtic-cross' ? 10 : 3,
   icon: type === 'celtic-cross' ? 'celticCross' : 'threeCard',
-  positions: type === 'celtic-cross' 
+  positions: type === 'celtic-cross'
     ? Array(10).fill(0).map((_, i) => ({
-        name: `Position ${i + 1}`,
-        description: `Test position ${i + 1}`
-      }))
+      name: `Position ${i + 1}`,
+      description: `Test position ${i + 1}`
+    }))
     : [
-        { name: 'Past', description: 'Test past position' },
-        { name: 'Present', description: 'Test present position' },
-        { name: 'Future', description: 'Test future position' }
-      ]
+      { name: 'Past', description: 'Test past position' },
+      { name: 'Present', description: 'Test present position' },
+      { name: 'Future', description: 'Test future position' }
+    ]
 });
 
 /**
@@ -60,11 +69,12 @@ export const createMockCard = (position: number = 0): Card & { position: number;
  * @param {ReactElement} ui - The React element to render.
  * @returns {RenderResult} The result of the render.
  */
-export const renderWithTheme = (ui: ReactElement) => {
+export const renderWithTheme = (ui: ReactElement): RenderResult => {
+  const defaultTheme = {};
   return render(
-    <ThemeProvider theme={{}}>
-      {ui}
-    </ThemeProvider>
+    <ThemeProvider theme={ defaultTheme } >
+    { ui }
+  </ThemeProvider>
   );
 };
 

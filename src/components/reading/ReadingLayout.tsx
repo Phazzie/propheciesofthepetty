@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
-import styles from './ReadingLayout.module.css';
-import type { Card, ReadingInterpretation, SpreadType } from '../../types';
-import { TarotCard } from '../TarotCard';
 import { HelpCircle } from 'lucide-react';
+import React, { useMemo } from 'react';
+import type { Card, ReadingInterpretation, SpreadType } from '../../types';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { TarotCard } from '../TarotCard';
+import styles from './ReadingLayout.module.css';
 
 interface Props {
   spreadType: SpreadType;
@@ -39,10 +39,31 @@ const SPREAD_DEFINITIONS: Record<SpreadType, SpreadPosition[]> = {
     { name: 'Present', description: 'Your current situation' },
     { name: 'Future', description: 'Where things are heading' }
   ],
-  'three-card': [
-    { name: 'Mind', description: 'Your thoughts and mental state' },
-    { name: 'Body', description: 'Your physical and material concerns' },
-    { name: 'Spirit', description: 'Your spiritual and emotional state' }
+  'im-fine': [
+    { name: 'Surface Issue', description: "What you say is bothering you (but isn't)" },
+    { name: 'Real Issue', description: "What's actually bothering you (obviously)" },
+    { name: 'Future Drama', description: "What you'll bring up in your next argument" }
+  ],
+  'just-saying': [
+    { name: 'Facade', description: "What you're pretending not to be mad about" },
+    { name: 'Open Secret', description: "What everyone else already knows" },
+    { name: 'Ignored Solution', description: "The obvious solution you're ignoring" },
+    { name: 'Stubbornness', description: "Why you'll ignore good advice" },
+    { name: 'Consequences', description: "How this will inevitably blow up later" }
+  ],
+  'whatever': [
+    { name: 'Eye Roll', description: "What you're rolling your eyes about" },
+    { name: 'Screenshot', description: "The thing you'll screenshot and send to your group chat" },
+    { name: 'Valid Concerns', description: "Your perfectly valid but poorly communicated concerns" },
+    { name: 'Petty Response', description: "The petty way you'll handle this" }
+  ],
+  'no-offense': [
+    { name: 'Sugar Coating', description: "The truth you're sugar-coating" },
+    { name: 'Real Meaning', description: "What you actually mean" },
+    { name: 'Backhanded Compliment', description: "Your backhanded compliment" },
+    { name: 'Concern', description: "Their obvious flaw you're 'concerned' about" },
+    { name: 'Advice', description: "Your unsolicited advice" },
+    { name: 'Reaction', description: "Why they'll be mad even though you're 'just trying to help'" }
   ]
 };
 
@@ -70,7 +91,14 @@ const getLayoutClass = (spreadType: SpreadType): string => {
     case 'celtic-cross':
       return 'grid-cols-4 grid-rows-4 gap-4';
     case 'past-present-future':
-    case 'three-card':
+    case 'im-fine':
+      return 'grid-cols-3 gap-6';
+    case 'just-saying':
+      return 'grid-cols-5 gap-4';
+    case 'whatever':
+      return 'grid-cols-4 gap-4';
+    case 'no-offense':
+      return 'grid-cols-3 grid-rows-2 gap-4';
     default:
       return 'grid-cols-3 gap-6';
   }

@@ -1,10 +1,8 @@
+import { AlertCircle, Eye, EyeOff, Loader, Lock, Mail } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { AlertCircle, Loader, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { logger } from '../../lib/logger';
-import { ValidationError } from '../../lib/errors';
-import { RegisterForm } from './RegisterForm';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
+import { RegisterForm } from './RegisterForm';
 
 interface FormData {
   email: string;
@@ -12,6 +10,12 @@ interface FormData {
   rememberMe: boolean;
 }
 
+/**
+ * LoginForm component provides a form for users to log in with email and password.
+ * Inline comments added to explain validation logic and error handling.
+ *
+ * @returns {JSX.Element} The rendered login form.
+ */
 export const LoginForm: React.FC = () => {
   const { login, loading, error: authError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -24,17 +28,31 @@ export const LoginForm: React.FC = () => {
   });
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Validate the email format using a regular expression.
+   * @param email - The email address to validate
+   * @returns {boolean} True if email format is valid, else false
+   */
+  const validateEmail = (email: string): boolean => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
+  /**
+   * Form submit handler
+   * Validates input values before proceeding with login logic
+   * @param event - Form event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
+    // Inline comment: Validate email format
+    if (!validateEmail(formData.email)) {
       setError('Invalid email format');
       return;
     }
 
-    // Validate password
+    // Inline comment: Validate that password meets minimum length requirements
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters');
       return;
